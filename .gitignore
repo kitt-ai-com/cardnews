@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+data/series/*/cards/*/state.lock
+data/series/*/cards/*/state.json.tmp.*
