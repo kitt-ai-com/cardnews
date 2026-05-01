@@ -36,6 +36,7 @@ function makePage(
 function makeCard(pages: Page[]): Card {
   return {
     id: "card",
+    pipelineVersion: "v1-mocked",
     series: "claude",
     preset: "c1-dark-lime",
     sourcePolicy: { trustLevel: "unknown", factCheckMode: "strict" },

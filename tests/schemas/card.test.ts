@@ -109,4 +109,20 @@ describe("Card", () => {
     ];
     expect(() => CardSchema.parse(ok)).not.toThrow();
   });
+
+  it("pipelineVersion defaults to 'v1-mocked' when omitted", () => {
+    const out = CardSchema.parse(baseCard);
+    expect(out.pipelineVersion).toBe("v1-mocked");
+  });
+
+  it("accepts pipelineVersion = 'v2-editorial'", () => {
+    const ok = { ...baseCard, pipelineVersion: "v2-editorial" };
+    const out = CardSchema.parse(ok);
+    expect(out.pipelineVersion).toBe("v2-editorial");
+  });
+
+  it("rejects unknown pipelineVersion", () => {
+    const bad = { ...baseCard, pipelineVersion: "v3-magic" };
+    expect(() => CardSchema.parse(bad)).toThrow();
+  });
 });

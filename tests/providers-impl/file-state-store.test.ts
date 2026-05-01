@@ -27,6 +27,7 @@ function makeCard(id = "card-1"): Card {
     id,
     series: "claude",
     preset: "c1-dark-lime",
+    pipelineVersion: "v1-mocked",
     topic: "test",
     sourcePolicy: { trustLevel: "unknown", factCheckMode: "strict" },
     coreMessage: "core",

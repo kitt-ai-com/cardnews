@@ -39,11 +39,19 @@ export const RecoverOptionsSchema = z.object({
 });
 export type RecoverOptions = z.infer<typeof RecoverOptionsSchema>;
 
+// pipelineVersion records which pipeline produced this card.
+// Set on Card creation; never mutated. v1-mocked = M1 mock pipeline,
+// v2-editorial = M2+ Claim Ledger / copyIntent / Editorial Review pipeline.
+// See docs/superpowers/specs/2026-05-02-claim-ledger-revision.md §12.
+export const PipelineVersion = z.enum(["v1-mocked", "v2-editorial"]);
+export type PipelineVersion = z.infer<typeof PipelineVersion>;
+
 export const CardSchema = z
   .object({
     id: z.string().min(1),
     series: z.string().min(1),
     preset: z.string().min(1),
+    pipelineVersion: PipelineVersion.default("v1-mocked"),
     topic: z.string().optional(),
     sourceText: z.string().optional(),
     sourcePolicy: SourcePolicySchema,
