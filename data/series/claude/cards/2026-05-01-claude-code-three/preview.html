@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Claude Code 3가지 — 카드뉴스 미리보기 (rev 4)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root {
+    --bg: #0e0e10;
+    --text: #ffffff;
+    --accent: #c4ff3d;
+    --muted: rgba(255,255,255,0.55);
+    --safe: 60px;
+    --footer-h: 28px;
+    --tag-track: 1.8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #1a1a1a; color: #ddd; font-family: "Pretendard", "Noto Sans KR", -apple-system, sans-serif; }
+  body { padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  h1 { color: #fff; font-weight: 800; margin-bottom: 8px; }
+  .meta { color: #888; font-size: 13px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 540px); gap: 32px; }
+
+  .card {
+    width: 540px; height: 675px;
+    background: var(--bg); color: var(--text);
+    position: relative; overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    font-family: "Pretendard", "Noto Sans KR", sans-serif;
+    letter-spacing: -0.02em;
+  }
+  .card-inner {
+    position: absolute; top: 0; left: 0;
+    width: 1080px; height: 1350px;
+    transform: scale(0.5); transform-origin: top left;
+  }
+
+  .label-tag {
+    position: absolute; top: 60px; left: 48px;
+    color: var(--accent);
+    font-size: 24px; font-weight: 700;
+    letter-spacing: var(--tag-track);
+    text-transform: uppercase;
+  }
+  .footer {
+    position: absolute; bottom: 60px; left: 48px; right: 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--muted);
+    font-size: 26px; letter-spacing: 0.5px;
+  }
+  .footer .handle { color: var(--accent); opacity: 0.9; font-weight: 600; }
+
+  /* ---------- cover ---------- */
+  .cover .bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.95; }
+  .cover .content { position: absolute; bottom: 200px; left: 48px; right: 48px; }
+  .cover .title { font-size: 90px; font-weight: 900; line-height: 1.05; }
+  .cover .subtitle { margin-top: 80px; font-size: 34px; color: var(--muted); line-height: 1.4; }
+
+  /* ---------- P2 (3-column comparison) ---------- */
+  .p2 .title {
+    position: absolute; top: 200px; left: 48px; right: 48px;
+    font-size: 64px; font-weight: 900; line-height: 1.15;
+  }
+  .p2 .cols {
+    position: absolute; top: 540px; left: 48px; right: 48px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  }
+  .p2 .col {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(196,255,61,0.18);
+    border-radius: 18px;
+    padding: 36px 24px;
+    display: flex; flex-direction: column; gap: 20px;
+    min-height: 480px;
+  }
+  .p2 .col .icon {
+    width: 80px; height: 80px; border-radius: 16px;
+    background: rgba(196,255,61,0.14);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 44px; font-weight: 800;
+  }
+  .p2 .col .name { color: var(--accent); font-size: 38px; font-weight: 800; }
+  .p2 .col .desc { color: var(--text); font-size: 26px; line-height: 1.5; }
+  .p2 .col .meta { color: var(--muted); font-size: 22px; line-height: 1.45; margin-top: auto; }
+
+  /* ---------- P3 (list) ---------- */
+  .p3 .title {
+    position: absolute; top: 200px; left: 48px; right: 48px;
+    font-size: 64px; font-weight: 900; line-height: 1.15;
+  }
+  .p3 .list {
+    position: absolute; top: 500px; left: 48px; right: 48px;
+    display: flex; flex-direction: column; gap: 38px;
+  }
+  .p3 .li { display: flex; gap: 18px; align-items: flex-start; font-size: 32px; line-height: 1.45; }
+  .p3 .li .mark {
+    flex-shrink: 0; width: 22px; height: 22px; margin-top: 12px;
+    background: var(--accent); border-radius: 4px; position: relative;
+  }
+  .p3 .li .mark::after {
+    content: "✓"; position: absolute; inset: 0;
+    color: var(--bg); font-weight: 900; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .p3 .li b { color: var(--accent); font-weight: 700; }
+  .p3 .li code {
+    background: rgba(196,255,61,0.12); color: var(--accent);
+    padding: 2px 10px; border-radius: 4px;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 26px;
+  }
+  .p3 .li .note { color: var(--muted); font-size: 24px; margin-left: 8px; }
+
+  /* ---------- P1 (image top + body bottom) ---------- */
+  .p1 .img { position: absolute; top: 0; left: 0; right: 0; height: 50%; background-size: cover; background-position: center; }
+  .p1 .img::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(14,14,16,0) 0%, var(--bg) 100%);
+  }
+  .p1 .label-tag { top: 60px; }
+  .p1 .title {
+    position: absolute; top: 720px; left: 48px; right: 48px;
+    font-size: 64px; font-weight: 900; line-height: 1.15;
+  }
+  .p1 .body {
+    position: absolute; top: 980px; left: 48px; right: 48px;
+    font-size: 34px; line-height: 1.5; color: var(--muted);
+  }
+  .p1 .body code {
+    background: rgba(196,255,61,0.12); color: var(--accent);
+    padding: 2px 8px; border-radius: 4px;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 30px;
+  }
+  /* P1 with mini-bullets (denser-looking-but-actually-simpler) */
+  .p1 .bullets {
+    position: absolute; top: 980px; left: 48px; right: 48px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .p1 .bullets .b {
+    color: var(--text); font-size: 30px; line-height: 1.45;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .p1 .bullets .b .k { color: var(--accent); font-weight: 700; flex-shrink: 0; min-width: 96px; }
+  .p1 .bullets .b code {
+    background: rgba(196,255,61,0.12); color: var(--accent);
+    padding: 1px 8px; border-radius: 4px;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 26px;
+  }
+
+  /* ---------- P6 (CTA pill button) ---------- */
+  .p6 .bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.85; }
+  .p6 .label-tag { top: 100px; }
+  .p6 .title {
+    position: absolute; top: 200px; left: 48px; right: 48px;
+    font-size: 110px; font-weight: 900; line-height: 1.05;
+  }
+  .p6 .body {
+    position: absolute; top: 580px; left: 48px; right: 48px;
+    font-size: 32px; color: var(--muted); line-height: 1.5;
+  }
+  .p6 .button {
+    position: absolute; bottom: 220px; left: 48px; right: 48px;
+    background: var(--accent); color: var(--bg);
+    border-radius: 999px;
+    height: 110px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px; font-weight: 800;
+    letter-spacing: -0.01em;
+    box-shadow: 0 0 60px rgba(196,255,61,0.25);
+  }
+  .p6 .button .arrow { margin-left: 12px; font-weight: 700; }
+
+  /* accent inline */
+  .accent { color: var(--accent); }
+
+  .card-label { color: #888; font-size: 13px; margin-top: 8px; text-align: center; }
+  .badge { display: inline-block; background: rgba(196,255,61,0.18); color: var(--accent); padding: 1px 8px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<h1>Claude Code 3가지 — 카드뉴스 미리보기 <span style="color:#c4ff3d;font-weight:600;font-size:14px">rev 4</span></h1>
+<p class="meta">Claude 시리즈 · C1 다크 모던 + 라임 · 1080×1350 (display 50%) · 신규 패턴 P2 / P6 적용</p>
+
+<div class="grid">
+
+  <!-- 01 cover (유지) -->
+  <div>
+    <div class="card">
+      <div class="card-inner cover">
+        <div class="bg" style="background-image: url('images/page-01-cover.png')"></div>
+        <div class="label-tag">CLAUDE CODE</div>
+        <div class="content">
+          <div class="title">스킬·훅·루프 모르면<br><span class="accent">Claude Code 손해</span></div>
+          <div class="subtitle">자주 쓰는 일은 명령으로,<br>반복은 자동으로.</div>
+        </div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>01 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">01 · cover</div>
+  </div>
+
+  <!-- 02 P2 (3열 비교) — NEW -->
+  <div>
+    <div class="card">
+      <div class="card-inner p2">
+        <div class="label-tag">한 컷 비교</div>
+        <div class="title">셋의 역할은<br>다 다르다</div>
+        <div class="cols">
+          <div class="col">
+            <div class="icon">/</div>
+            <div class="name">스킬</div>
+            <div class="desc">반복 작업을 슬래시 명령으로 묶어둔 것.</div>
+            <div class="meta">SKILL.md 한 장이면 끝</div>
+          </div>
+          <div class="col">
+            <div class="icon">⚡</div>
+            <div class="name">훅</div>
+            <div class="desc">특정 이벤트가 일어나면 자동으로 끼어드는 스크립트.</div>
+            <div class="meta">settings.json에 등록</div>
+          </div>
+          <div class="col">
+            <div class="icon">↻</div>
+            <div class="name">루프</div>
+            <div class="desc">한 프롬프트를 결과 나올 때까지 반복.</div>
+            <div class="meta">/loop 명령</div>
+          </div>
+        </div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>02 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">02 · P2 한 컷 비교 <span class="badge">NEW</span></div>
+  </div>
+
+  <!-- 03 P1 Skills — densified to 3 bullets -->
+  <div>
+    <div class="card">
+      <div class="card-inner p1">
+        <div class="img" style="background-image: url('images/page-03-skills.png')"></div>
+        <div class="label-tag">01 SKILLS</div>
+        <div class="title"><span class="accent">스킬</span>은<br>SKILL.md 한 장이면 끝</div>
+        <div class="bullets">
+          <div class="b"><span class="k">어디에</span><span><code>~/.claude/skills/</code> 또는 프로젝트 <code>.claude/skills/</code></span></div>
+          <div class="b"><span class="k">어떻게</span><span>frontmatter <code>description</code> 매칭이면 자동, <code>/이름</code>으로 직접도</span></div>
+          <div class="b"><span class="k">권한은</span><span><code>allowed-tools</code>로 미리 승인 → 매번 묻지 않음</span></div>
+        </div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>03 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">03 · P1 Skills (3-point bullet)</div>
+  </div>
+
+  <!-- 04 P3 — title corrected -->
+  <div>
+    <div class="card">
+      <div class="card-inner p3">
+        <div class="label-tag">이렇게 쓴다</div>
+        <div class="title">자주 쓰는<br>명령·스킬 5가지</div>
+        <div class="list">
+          <div class="li"><div class="mark"></div><div><code>/simplify</code> — 변경 코드 단순화 리뷰 <span class="note">(bundled skill)</span></div></div>
+          <div class="li"><div class="mark"></div><div><code>/loop</code> — 반복 작업 자동 진행 <span class="note">(bundled skill)</span></div></div>
+          <div class="li"><div class="mark"></div><div><code>/init</code> — 프로젝트 CLAUDE.md 자동 생성 <span class="note">(built-in)</span></div></div>
+          <div class="li"><div class="mark"></div><div><code>/review</code> — Pull Request 리뷰 <span class="note">(built-in)</span></div></div>
+          <div class="li"><div class="mark"></div><div><code>/security-review</code> — 변경분 보안 리뷰 <span class="note">(built-in)</span></div></div>
+        </div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>04 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">04 · P3 자주 쓰는 명령·스킬</div>
+  </div>
+
+  <!-- 05 P1 Hooks — re-framed: when does it intervene -->
+  <div>
+    <div class="card">
+      <div class="card-inner p1">
+        <div class="img" style="background-image: url('images/page-05-hooks.png')"></div>
+        <div class="label-tag">02 HOOKS</div>
+        <div class="title"><span class="accent">훅</span>은<br>이벤트마다 끼어든다</div>
+        <div class="bullets">
+          <div class="b"><span class="k">언제</span><span>세션 시작·도구 실행 전후·종료 같은 이벤트마다</span></div>
+          <div class="b"><span class="k">무엇을</span><span><code>PreToolUse</code> 차단/승인, <code>UserPromptSubmit</code> 컨텍스트 추가, <code>PostToolUse</code> 후처리</span></div>
+          <div class="b"><span class="k">어디에</span><span><code>settings.json</code>의 <code>hooks</code> 블록</span></div>
+        </div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>05 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">05 · P1 Hooks (when/what/where)</div>
+  </div>
+
+  <!-- 06 P3 Hooks 실전 — added security caveat -->
+  <div>
+    <div class="card">
+      <div class="card-inner p3">
+        <div class="label-tag">이렇게 쓴다</div>
+        <div class="title">Hooks<br>진짜 쓰임새 4가지</div>
+        <div class="list">
+          <div class="li"><div class="mark"></div><div><b>권한 자동 승인</b> — 자주 쓰는 git/bash만 화이트리스트로 좁게 <span class="note">(위험 명령은 절대 X)</span></div></div>
+          <div class="li"><div class="mark"></div><div><b>자동 포매팅</b> — 파일 수정 후 Prettier/Black 자동 (PostToolUse)</div></div>
+          <div class="li"><div class="mark"></div><div><b>컨텍스트 자동 주입</b> — 시작 시 PR·배포 상태 자동 (SessionStart)</div></div>
+          <div class="li"><div class="mark"></div><div><b>위험 명령 차단</b> — <code>rm -rf</code>, <code>push --force</code>는 PreToolUse에서 거부</div></div>
+        </div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>06 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">06 · P3 Hooks 실전 (+caveat)</div>
+  </div>
+
+  <!-- 07 P1 Loop — clarified /loop vs /schedule -->
+  <div>
+    <div class="card">
+      <div class="card-inner p1">
+        <div class="img" style="background-image: url('images/page-07-loop.png')"></div>
+        <div class="label-tag">03 LOOP</div>
+        <div class="title"><span class="accent">루프</span>는<br>될 때까지 돈다</div>
+        <div class="bullets">
+          <div class="b"><span class="k">고정 간격</span><span><code>/loop 5m &lt;프롬프트&gt;</code> — 5분마다 반복</span></div>
+          <div class="b"><span class="k">자율 간격</span><span><code>/loop &lt;프롬프트&gt;</code> — Claude가 1분~1시간 사이 알아서</span></div>
+          <div class="b"><span class="k">vs schedule</span><span>세션 내 빠른 반복은 <code>/loop</code>, 며칠 가는 작업은 <code>/schedule</code></span></div>
+        </div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>07 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">07 · P1 Loop (loop vs schedule)</div>
+  </div>
+
+  <!-- 08 P6 CTA pill button — NEW -->
+  <div>
+    <div class="card">
+      <div class="card-inner p6">
+        <div class="bg" style="background-image: url('images/page-08-cta.png')"></div>
+        <div class="label-tag">지금 시작</div>
+        <div class="title">오늘은<br><span class="accent">하나만</span> 적용</div>
+        <div class="body">스킬 하나 만들거나 훅 한 줄만 걸어도<br>매일 반복하는 일이 줄어든다.<br>자세한 건 <span class="accent">code.claude.com/docs</span></div>
+        <div class="button">저장하고 따라하기 <span class="arrow">→</span></div>
+        <div class="footer"><span class="handle">@uhuru_nomadlife</span><span>08 / 08</span></div>
+      </div>
+    </div>
+    <div class="card-label">08 · P6 CTA pill button <span class="badge">NEW</span></div>
+  </div>
+
+</div>
+
+</body>
+</html>
