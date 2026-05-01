@@ -3,5 +3,8 @@ dist/
 coverage/
 *.log
 .DS_Store
+.env
+.env.*
+!.env.example
 data/series/*/cards/*/state.lock
 data/series/*/cards/*/state.json.tmp.*

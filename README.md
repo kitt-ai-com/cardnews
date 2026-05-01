@@ -6,7 +6,7 @@ Cardnews automation. See `../../docs/superpowers/specs/2026-05-01-cardnews-autom
 
 ```sh
 bun install
-bun test         # run tests
-bun test:watch   # watch mode
+bun run test         # run tests (vitest)
+bun run test:watch   # watch mode
 bun run typecheck
 ```
