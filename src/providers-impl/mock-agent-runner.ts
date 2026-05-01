@@ -1,4 +1,3 @@
-import type { ZodType } from "zod";
 import type { AgentPort } from "@core/agents/ports";
 import {
   AnalystInputSchema,
@@ -110,8 +109,7 @@ export function makeMockCopywriter(): AgentPort<
   return {
     name: "mock-copywriter",
     contract: {
-      // Cast: CopyContextSchema has defaults so input/output Zod types diverge.
-      inputSchema: CopywriterPageInputSchema as unknown as ZodType<CopywriterPageInput>,
+      inputSchema: CopywriterPageInputSchema,
       outputSchema: CopywriterPageOutputSchema,
       systemPromptPath: "data/agents/copywriter.md",
     },
@@ -191,9 +189,7 @@ export function makeMockFactChecker(): AgentPort<
     name: "mock-fact-checker",
     contract: {
       inputSchema: FactCheckerInputSchema,
-      // Cast: FactCheckerOutputSchema has a `.default([])` on claims, so its
-      // ZodType input/output diverge — runtime parse still produces FactCheckerOutput.
-      outputSchema: FactCheckerOutputSchema as unknown as ZodType<FactCheckerOutput>,
+      outputSchema: FactCheckerOutputSchema,
       systemPromptPath: "data/agents/fact-checker.md",
     },
     async run(input: FactCheckerInput): Promise<FactCheckerOutput> {
