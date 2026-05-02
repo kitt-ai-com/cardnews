@@ -1,0 +1,33 @@
+{
+  "id": "2026-05-01-claude-code-three",
+  "series": "claude",
+  "preset": "c1-dark-lime",
+  "pipelineVersion": "v1-mocked",
+  "topic": "Claude Code의 3가지 — 스킬·훅·루프 소개",
+  "coreMessage": "Claude Code를 자기 도구로 만드는 3가지 — 스킬·훅·루프",
+  "createdAt": "2026-05-01T23:25:00.000Z",
+  "kind": "manual-mvp",
+  "note": "Manual MVP run — produced before the orchestrator (Phase G) and before the v2 editorial pipeline. Preserved as the v1 baseline for M2 acceptance comparison. No state.json exists because no Pipeline ran; this baseline.json is a static snapshot of metadata only.",
+  "stats": {
+    "pageCount": 8,
+    "layoutsUsed": ["cover", "P2", "P1", "P3", "cta"],
+    "infoPatternsUsed": [],
+    "imagesGenerated": 5,
+    "imageProvider": "codex-image"
+  },
+  "knownLimitations": [
+    "no claim ledger — facts were not extracted as structured records",
+    "no copyIntent on pages — page rhetorical roles were implicit",
+    "no editorial review — content quality was reviewed manually by the user",
+    "facts pulled from claude-code-guide subagent in the second pass only (initial draft was from training memory and contained errors)",
+    "page 03 image (Skills) feels weak per user — would regenerate with toolbox metaphor in v2",
+    "narrative arc has 3 sections (skills/hooks/loop) — v2 should target the 6-section arc"
+  ],
+  "comparisonAxes": [
+    "facts accuracy (cited sources, version awareness, scope distinction between built-in/bundled/installed)",
+    "depth (claim + mechanism + evidence + implication per page vs simple summary)",
+    "narrative arc (3 vs 6 sections — hook → context → mechanism → evidence → implication → action)",
+    "rhetorical diversity (intent variety across pages)",
+    "visual diversity (P-pattern + I-pattern variety)"
+  ]
+}

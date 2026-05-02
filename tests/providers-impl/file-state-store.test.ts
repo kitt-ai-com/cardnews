@@ -71,6 +71,24 @@ describe("FileStateStore", () => {
     expect(result?.pages.length).toBe(4);
   });
 
+  it("write applies schema defaults to disk (pipelineVersion)", async () => {
+    // Caller omits pipelineVersion. write() must parse, apply default,
+    // and persist the validated result — not the bare input.
+    const card = makeCard("rt-default") as unknown as Record<string, unknown>;
+    delete card.pipelineVersion;
+    await store.write("rt-default", card as unknown as Card);
+
+    const raw = await fs.readFile(
+      path.join(rootDir, "rt-default", "state.json"),
+      "utf8"
+    );
+    const onDisk = JSON.parse(raw);
+    expect(onDisk.pipelineVersion).toBe("v1-mocked");
+
+    const reloaded = await store.read("rt-default");
+    expect(reloaded?.pipelineVersion).toBe("v1-mocked");
+  });
+
   it("survives 50 interleaved write/read tasks", async () => {
     const card = makeCard("conc-1");
     await store.write(card.id, card);

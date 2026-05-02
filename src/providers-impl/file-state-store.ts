@@ -36,8 +36,10 @@ export class FileStateStore implements StateStore {
   }
 
   async write(cardId: string, card: Card): Promise<void> {
-    // Validate first — reject malformed mutations early.
-    CardSchema.parse(card);
+    // Validate AND apply defaults. Persist the parsed result so schema
+    // defaults (e.g. pipelineVersion: "v1-mocked") actually land on disk
+    // even if the caller passed an object missing those fields.
+    const validated = CardSchema.parse(card);
 
     const dir = this.cardDir(cardId);
     await fs.mkdir(dir, { recursive: true });
@@ -50,7 +52,7 @@ export class FileStateStore implements StateStore {
         .slice(2, 10)}`
     );
 
-    const payload = JSON.stringify(card, null, 2);
+    const payload = JSON.stringify(validated, null, 2);
 
     const fh = await fs.open(tmp, "wx");
     try {
