@@ -42,6 +42,35 @@
 | **fontFamily** | `Pretendard, "Noto Sans KR", -apple-system, sans-serif` |
 | **letter-spacing 기본** | `-0.02em` (모든 텍스트) |
 | **line-height 기본** | 제목 1.05 ~ 1.15, 본문 1.4 ~ 1.55 |
+| **word-break (한글 필수)** | `keep-all` + `overflow-wrap: break-word` |
+
+### 한글 줄바꿈 (필수 룰)
+
+CSS 기본값(`word-break: normal`)은 한글을 **글자 단위**로 끊는다. 결과:
+- ❌ "맡길 수 있" / "다." (다음 줄에 "다."만 동떨어짐)
+- ❌ "남긴다" / "." (마침표 분리)
+
+해결: `.card-inner` 또는 카드 루트 요소에 `word-break: keep-all` 적용.
+
+```css
+.card-inner {
+  word-break: keep-all;
+  overflow-wrap: break-word;  /* 단일 단어가 너무 길 때 fallback */
+}
+```
+
+→ 어절 단위로 줄바꿈. "있다." 같은 종결구가 한 덩어리로 유지.
+
+**예외:** 코드 블록(`.code`, `<code>`)은 명령어/URL이 길어서 자르더라도 화면에 들어가야 함. 별도 override:
+
+```css
+.os .code {
+  word-break: keep-all;
+  overflow-wrap: anywhere;  /* 마지막 수단으로 어디서나 끊기 */
+}
+```
+
+**적용 시점:** 모든 새 카드뉴스 미리보기 HTML/렌더 컴포넌트의 루트에 default. M3 Frame 컴포넌트에도 박을 것.
 
 ### 타이포 위계 (1080×1350 캔버스 기준)
 
@@ -594,3 +623,4 @@ vertical 1080x1350 composition"
 | 2026-05-02 (rev 5) | **시스템 방향 전환** — "예쁜 요약기" → "주장 검증형 편집 시스템". Claim Ledger / copyIntent / Editorial Review / Information Patterns I1~I6 도입. Spec v2 addendum (`2026-05-02-claim-ledger-revision.md`)과 연동. 이 시리즈에서 평가어 정책·trusted 출처 명문화. |
 | 2026-05-02 (rev 6) | **편집 스타일 + 신규 패턴 + 일관성 룰** — Claude Code 처음 시작 v1→v8 반복에서 학습한 패턴 영구화: ① P8 비교 표 / P9 세로 스택 / P10 OS-keyed 코드 / P11 번호 단계 / **P15 myth-reality** 정식 등록. ② Anthropic voice 차용 룰 (공식 첫 문장 키워드를 1장 후킹에). ③ 시리즈 일관성 룰 (멀티 환경·플랜·가격 1-2장에 미리 노출). ④ 분석 → 카피 → 디자인 → 리뷰 4-에이전트 팀 워크플로우 정착 (`feedback_cardnews_team.md` 메모리 참조). |
 | 2026-05-02 (rev 7) | **반절 사진 헤로 cover 패턴 추가** (A) — 추상 글로우 일색 cover의 한계(AI 생성 티) 해결. 이미지: 자연 톤 사진 스타일(노트북+따뜻한 조명+흰/회색 코드+작은 라임 액센트). 레이아웃: 상단 55% 이미지 + 하단 45% 어두운 영역에 텍스트. 페이지번호 dots는 cover에서 제거(SNS 플랫폼 자체 indicator 사용). 타이틀에 제품명 명시 ("Claude Code, 5분이면 시작"). 첫 살아있는 사례: `cards/2026-05-02-claude-code-getting-started/`. |
+| 2026-05-02 (rev 8) | **한글 줄바꿈 룰** — `word-break: keep-all` 필수. CSS 기본값은 한글을 글자 단위로 끊어 "있다."를 "있" + "다." 분리. 카드 루트(`.card-inner`)에 `keep-all` + `overflow-wrap: break-word` 적용. 코드 블록은 `overflow-wrap: anywhere` 예외. 8 PNG 재생성 후 적용 확인. |
