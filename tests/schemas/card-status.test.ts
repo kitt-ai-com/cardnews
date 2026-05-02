@@ -56,4 +56,34 @@ describe("CardStatus", () => {
     expect(isTerminal("draft.copy-ready")).toBe(false);
     expect(isTerminal("draft.analyzing")).toBe(false);
   });
+
+  it("accepts the 4 new v2 statuses", () => {
+    for (const s of [
+      "draft.claim-extracting",
+      "draft.claims-ready",
+      "draft.review-pending",
+      "draft.review-blocked",
+    ]) {
+      expect(() => CardStatusSchema.parse(s)).not.toThrow();
+    }
+  });
+
+  it("isInProgress includes claim-extracting", () => {
+    expect(isInProgress("draft.claim-extracting")).toBe(true);
+  });
+
+  it("isAwaitingApproval covers claims-ready, review-pending, review-blocked", () => {
+    expect(isAwaitingApproval("draft.claims-ready")).toBe(true);
+    expect(isAwaitingApproval("draft.review-pending")).toBe(true);
+    expect(isAwaitingApproval("draft.review-blocked")).toBe(true);
+    // Sanity: claim-extracting is in-progress, NOT awaiting
+    expect(isAwaitingApproval("draft.claim-extracting")).toBe(false);
+  });
+
+  it("isTerminal stays false for all 4 new v2 statuses", () => {
+    expect(isTerminal("draft.claim-extracting")).toBe(false);
+    expect(isTerminal("draft.claims-ready")).toBe(false);
+    expect(isTerminal("draft.review-pending")).toBe(false);
+    expect(isTerminal("draft.review-blocked")).toBe(false);
+  });
 });
