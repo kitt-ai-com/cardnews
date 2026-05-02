@@ -25,8 +25,18 @@ import {
 } from "@core/agents/contracts/fact-checker";
 import { slideCountRange } from "@core/validators/structure";
 import type { LayoutId } from "@core/schemas/preset";
+import type { CopyIntent } from "@core/schemas/copy-intent";
 
 const LIST_LAYOUTS: ReadonlySet<LayoutId> = new Set(["P3", "P5"]);
+
+// Cycle of body-page intents the mock uses to satisfy the v2 schema.
+// Cover always gets "hook"; CTA always gets "cta"; bodies cycle through these.
+const BODY_INTENT_CYCLE: ReadonlyArray<CopyIntent> = [
+  "definition",
+  "mechanism",
+  "evidence",
+  "example",
+];
 
 export function makeMockAnalyst(): AgentPort<AnalystInput, AnalystOutput> {
   return {
@@ -43,7 +53,7 @@ export function makeMockAnalyst(): AgentPort<AnalystInput, AnalystOutput> {
 
       // Filter out cover/cta from preset.layouts to find body candidates.
       let bodyCandidates = input.preset.layouts.filter(
-        (l) => l !== "cover" && l !== "cta"
+        (l) => l !== "cover" && l !== "cta",
       );
 
       if (bodyCandidates.length === 0) {
@@ -55,9 +65,65 @@ export function makeMockAnalyst(): AgentPort<AnalystInput, AnalystOutput> {
       }
 
       const bodyCount = target - 2;
+
+      // Build a small Claim Ledger with mixed types/confidence so the mock
+      // exercises the v2 referential-integrity path. Five claims: c1..c5.
+      const subject = input.topic ?? "input";
+      const claims: AnalystOutput["claimLedger"]["claims"] = [
+        {
+          id: "c1",
+          text: `${subject}는 핵심 주제다.`,
+          type: "fact",
+          confidence: "high",
+          risk: "none",
+          scope: [],
+        },
+        {
+          id: "c2",
+          text: "대표 수치는 약 30% 개선이다.",
+          type: "number",
+          evidence: "mock evidence",
+          confidence: "medium",
+          risk: "none",
+          scope: [],
+        },
+        {
+          id: "c3",
+          text: "원리는 단계적 변환에 기반한다.",
+          type: "interpretation",
+          confidence: "medium",
+          risk: "none",
+          scope: [],
+        },
+        {
+          id: "c4",
+          text: '"실험으로 검증되었다"는 평가가 있다.',
+          type: "quote",
+          confidence: "low",
+          risk: "needs-context",
+          scope: [],
+        },
+        {
+          id: "c5",
+          text: "독자는 우선 작은 단계부터 시도해 보자.",
+          type: "recommendation",
+          confidence: "high",
+          risk: "none",
+          scope: [],
+        },
+      ];
+
+      const claimLedger: AnalystOutput["claimLedger"] = {
+        claims,
+        sourceDigest: {
+          sources: [],
+          audienceQuestion: `${subject}을 어떻게 시작할까?`,
+        },
+      };
+
       const pages: AnalystOutput["pages"] = [];
 
-      // Cover at index 1
+      // Cover at index 1 — hook intent, may reference c1.
       pages.push({
         index: 1,
         role: "cover",
@@ -65,11 +131,17 @@ export function makeMockAnalyst(): AgentPort<AnalystInput, AnalystOutput> {
         workingTitle: "Cover",
         message: "Mock cover message",
         mappingNote: "cover layout overlay",
+        copyIntent: "hook",
+        claims: ["c1"],
       });
 
-      // Body pages — alternate across bodyCandidates
+      // Body pages — alternate across bodyCandidates, cycle copyIntents and
+      // distribute remaining claim ids across them.
+      const bodyClaimPool = ["c2", "c3", "c4", "c5"];
       for (let i = 0; i < bodyCount; i++) {
         const layout = bodyCandidates[i % bodyCandidates.length];
+        const intent = BODY_INTENT_CYCLE[i % BODY_INTENT_CYCLE.length];
+        const claimId = bodyClaimPool[i % bodyClaimPool.length];
         pages.push({
           index: pages.length + 1,
           role: "body",
@@ -77,10 +149,12 @@ export function makeMockAnalyst(): AgentPort<AnalystInput, AnalystOutput> {
           workingTitle: `Body ${i + 1}`,
           message: `Mock body message ${i + 1}`,
           mappingNote: `body mapping ${i + 1}`,
+          copyIntent: intent,
+          claims: [claimId],
         });
       }
 
-      // CTA at last index
+      // CTA at last index — cta intent, references c5 (recommendation).
       pages.push({
         index: pages.length + 1,
         role: "cta",
@@ -88,10 +162,24 @@ export function makeMockAnalyst(): AgentPort<AnalystInput, AnalystOutput> {
         workingTitle: "CTA",
         message: "Mock CTA message",
         mappingNote: "cta layout overlay",
+        copyIntent: "cta",
+        claims: ["c5"],
       });
 
+      const thesis = `Mock thesis for: ${subject}`;
       const out: AnalystOutput = {
-        coreMessage: "Mock core for: " + (input.topic ?? "input"),
+        thesis,
+        audienceQuestion: `${subject}을 어떻게 시작할까?`,
+        narrativeArc: {
+          hook: "hook stub",
+          context: "context stub",
+          mechanism: "mechanism stub",
+          evidence: "evidence stub",
+          implication: "implication stub",
+          action: "action stub",
+        },
+        claimLedger,
+        coreMessage: thesis,
         hookStrategy: "shock + curiosity",
         flow: "intro → points → close",
         pages,
@@ -138,7 +226,11 @@ export function makeMockCopywriter(): AgentPort<
         };
       }
 
-      const out: CopywriterPageOutput = { copy };
+      const out: CopywriterPageOutput = {
+        copy,
+        // The mock commits all claims the page declared.
+        committedClaimIds: [...(page.claims ?? [])],
+      };
       return CopywriterPageOutputSchema.parse(out);
     },
   };

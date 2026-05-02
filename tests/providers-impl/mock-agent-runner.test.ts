@@ -5,7 +5,10 @@ import {
   makeMockImageDirector,
   makeMockFactChecker,
 } from "@impl/mock-agent-runner";
-import type { AnalystInput } from "@core/agents/contracts/analyst";
+import {
+  AnalystOutputSchema,
+  type AnalystInput,
+} from "@core/agents/contracts/analyst";
 import type { CopywriterPageInput } from "@core/agents/contracts/copywriter";
 import type { ImageDirectorInput } from "@core/agents/contracts/image-director";
 import type { FactCheckerInput } from "@core/agents/contracts/fact-checker";
@@ -63,6 +66,44 @@ describe("makeMockAnalyst", () => {
     );
     expect(large.pages.length).toBeGreaterThan(small.pages.length);
   });
+
+  it("output passes the full v2 AnalystOutputSchema (incl. ref integrity)", async () => {
+    const analyst = makeMockAnalyst();
+    const out = await analyst.run(analystInput());
+    // The runner already parses internally, but re-parse here to assert the
+    // shape is stable against the exported schema.
+    expect(() => AnalystOutputSchema.parse(out)).not.toThrow();
+  });
+
+  it("emits a Claim Ledger with ≥3 claims and a complete narrative arc", async () => {
+    const analyst = makeMockAnalyst();
+    const out = await analyst.run(analystInput());
+    expect(out.claimLedger.claims.length).toBeGreaterThanOrEqual(3);
+    expect(out.narrativeArc.hook).toBeTruthy();
+    expect(out.narrativeArc.context).toBeTruthy();
+    expect(out.narrativeArc.mechanism).toBeTruthy();
+    expect(out.narrativeArc.evidence).toBeTruthy();
+    expect(out.narrativeArc.implication).toBeTruthy();
+    expect(out.narrativeArc.action).toBeTruthy();
+  });
+
+  it("assigns hook intent to cover and cta intent to last page", async () => {
+    const analyst = makeMockAnalyst();
+    const out = await analyst.run(analystInput());
+    expect(out.pages[0].copyIntent).toBe("hook");
+    expect(out.pages[out.pages.length - 1].copyIntent).toBe("cta");
+  });
+
+  it("every page.claims id exists in the ledger", async () => {
+    const analyst = makeMockAnalyst();
+    const out = await analyst.run(analystInput());
+    const ledgerIds = new Set(out.claimLedger.claims.map((c) => c.id));
+    for (const p of out.pages) {
+      for (const id of p.claims ?? []) {
+        expect(ledgerIds.has(id)).toBe(true);
+      }
+    }
+  });
 });
 
 describe("makeMockCopywriter", () => {
@@ -82,12 +123,35 @@ describe("makeMockCopywriter", () => {
         workingTitle: "테스트 제목",
         message: "메시지",
         mappingNote: "매핑",
+        copyIntent: "evidence",
+        claims: ["c1", "c2"],
       },
+      ledgerSlice: [
+        {
+          id: "c1",
+          text: "사실",
+          type: "fact",
+          confidence: "high",
+          risk: "none",
+          scope: [],
+        },
+        {
+          id: "c2",
+          text: "수치",
+          type: "number",
+          evidence: "evidence",
+          confidence: "medium",
+          risk: "none",
+          scope: [],
+        },
+      ],
       copyContext: {
         tone: "info",
         recurringTerms: [],
         usedExamples: [],
         forbiddenRepeats: [],
+        committedClaims: [],
+        pendingClaims: ["c1", "c2"],
       },
     };
   }
@@ -107,6 +171,17 @@ describe("makeMockCopywriter", () => {
     expect(out.copy.list).toBeDefined();
     expect(out.copy.list!.length).toBeGreaterThanOrEqual(3);
     expect(out.copy.body).toBeUndefined();
+  });
+
+  it("returns committedClaimIds as a subset of input.page.claims", async () => {
+    const cw = makeMockCopywriter();
+    const input = copyInput("P1");
+    const out = await cw.run(input);
+    expect(out.committedClaimIds).toBeDefined();
+    const declared = new Set(input.page.claims ?? []);
+    for (const id of out.committedClaimIds) {
+      expect(declared.has(id)).toBe(true);
+    }
   });
 });
 

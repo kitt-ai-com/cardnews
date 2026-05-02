@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LayoutId } from "../../schemas/preset";
+import { InfoPatternId } from "../../schemas/info-pattern";
 
 export const ImageDirectorInputSchema = z.object({
   preset: z.object({ imageStyle: z.string() }),
@@ -8,6 +9,10 @@ export const ImageDirectorInputSchema = z.object({
     layout: LayoutId,
     purpose: z.string(),
     title: z.string(),
+    // v2: lets the ImageDirector adapt the background style to the page's
+    // info pattern (e.g., I3 mechanism → flowing arrows; I1 claim → centered
+    // single subject).
+    infoPattern: InfoPatternId.optional(),
   }),
   fixViolations: z.array(z.unknown()).optional(),
 });
