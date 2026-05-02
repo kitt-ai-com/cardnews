@@ -27,6 +27,26 @@ describe("describeApprove", () => {
     expect(describeApprove("draft.failed")).toEqual({ action: "recover" });
   });
 
+  it("claims-ready advances to writing (v2-editorial)", () => {
+    expect(describeApprove("draft.claims-ready")).toEqual({
+      action: "advance",
+      next: "draft.writing",
+    });
+  });
+
+  it("review-pending advances to imaging (v2-editorial)", () => {
+    expect(describeApprove("draft.review-pending")).toEqual({
+      action: "advance",
+      next: "draft.imaging",
+    });
+  });
+
+  it("review-blocked produces a recover action (v2-editorial)", () => {
+    expect(describeApprove("draft.review-blocked")).toEqual({
+      action: "recover",
+    });
+  });
+
   it("exported produces the completion notice", () => {
     expect(describeApprove("exported")).toEqual({
       action: "notice",

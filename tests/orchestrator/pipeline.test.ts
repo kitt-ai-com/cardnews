@@ -158,16 +158,139 @@ describe("Pipeline", () => {
     );
   });
 
-  it("start with pipelineVersion=v2-editorial is rejected with NotImplementedError", async () => {
+  it("v2-editorial start lands at draft.claims-ready with full v2 fields populated", async () => {
     const { pipeline } = makePipeline();
-    await expect(
-      pipeline.start({
-        series,
-        preset,
-        topic: "v2",
-        sourcePolicy,
-        pipelineVersion: "v2-editorial",
-      })
-    ).rejects.toThrow(/v2-editorial/);
+    const card = await pipeline.start({
+      series,
+      preset,
+      topic: "v2 토픽",
+      sourcePolicy,
+      pipelineVersion: "v2-editorial",
+    });
+    expect(card.pipelineVersion).toBe("v2-editorial");
+    expect(card.status).toBe("draft.claims-ready");
+    expect(card.thesis).toBeDefined();
+    expect(card.thesis!.length).toBeGreaterThan(0);
+    expect(card.audienceQuestion).toBeDefined();
+    expect(card.narrativeArc).toBeDefined();
+    expect(card.claimLedger).toBeDefined();
+    expect(card.claimLedger!.claims.length).toBeGreaterThan(0);
+    // every page must have copyIntent (v2 superRefine guarantees this).
+    for (const page of card.pages) {
+      expect(page.copyIntent).toBeDefined();
+    }
+  });
+
+  it("v2-editorial: claims-ready → copy-ready → images-ready → exported", async () => {
+    // Use a "clean" copywriter that emits non-assertive copy (no `~다.`
+    // sentence endings) so the default mock-analyst's claim ledger — which
+    // includes a low-confidence claim — does not trip
+    // EDITORIAL/LOW_CONFIDENCE_ASSERTION. This isolates the happy-path
+    // status transitions from the violation case below.
+    const stateStore = new FileStateStore(tmpRoot);
+    const cleanCopywriter = makeMockCopywriter();
+    const originalRun = cleanCopywriter.run.bind(cleanCopywriter);
+    cleanCopywriter.run = async (input) => {
+      const out = await originalRun(input);
+      if (input.page.role === "body") {
+        out.copy = {
+          title: out.copy.title,
+          // declarative-but-non-assertive Korean: ends with 요 / 보세요
+          body:
+            "첫 번째 흐름으로 시작해요. 두 번째 흐름이 맥락을 보여줘요. 세 번째 흐름으로 마무리해요.",
+        };
+      }
+      return out;
+    };
+    const pipeline = new Pipeline({
+      stateStore,
+      analyst: makeMockAnalyst(),
+      copywriter: cleanCopywriter,
+      imageDirector: makeMockImageDirector(),
+      factChecker: makeMockFactChecker(),
+      now: () => "2026-05-02T00:00:00.000Z",
+      idGen: () => "card-test-v2-happy",
+    });
+
+    const card0 = await pipeline.start({
+      series,
+      preset,
+      topic: "Claude Opus 4.7 출시!",
+      sourcePolicy,
+      pipelineVersion: "v2-editorial",
+    });
+    expect(card0.status).toBe("draft.claims-ready");
+
+    const card1 = await pipeline.approve(card0.id);
+    expect(card1.status).toBe("draft.copy-ready");
+    // v2 fields preserved through Copywriter pass.
+    expect(card1.thesis).toBe(card0.thesis);
+    expect(card1.claimLedger).toEqual(card0.claimLedger);
+
+    const card2 = await pipeline.approve(card0.id);
+    expect(card2.status).toBe("draft.images-ready");
+
+    const card3 = await pipeline.approve(card0.id);
+    expect(card3.status).toBe("exported");
+  });
+
+  it("v2-editorial: editorial violations land at draft.review-blocked, force-advance unblocks", async () => {
+    // Construct a pipeline whose mock Copywriter emits an evaluative word
+    // ("강력하다") in the body of pages whose only claim is a low-confidence
+    // claim — the Editorial Review must flag EVALUATIVE_NO_BACKING.
+    const stateStore = new FileStateStore(tmpRoot);
+    const evilCopywriter = makeMockCopywriter();
+    const originalRun = evilCopywriter.run.bind(evilCopywriter);
+    evilCopywriter.run = async (input) => {
+      const out = await originalRun(input);
+      if (input.page.role === "body") {
+        out.copy = {
+          title: out.copy.title,
+          body:
+            "이 도구는 강력하다. 엄청나게 좋은 결과를 내준다. 충격적인 효과가 있다.",
+        };
+      }
+      return out;
+    };
+
+    const pipeline = new Pipeline({
+      stateStore,
+      analyst: makeMockAnalyst(),
+      copywriter: evilCopywriter,
+      imageDirector: makeMockImageDirector(),
+      factChecker: makeMockFactChecker(),
+      now: () => "2026-05-02T00:00:00.000Z",
+      idGen: () => "card-test-evil",
+    });
+
+    const card0 = await pipeline.start({
+      series,
+      preset,
+      topic: "강력한 도구",
+      sourcePolicy,
+      pipelineVersion: "v2-editorial",
+    });
+    expect(card0.status).toBe("draft.claims-ready");
+
+    const card1 = await pipeline.approve(card0.id);
+    expect(card1.status).toBe("draft.review-blocked");
+    expect(card1.violations).toBeDefined();
+    expect(card1.violations!.length).toBeGreaterThan(0);
+    expect(
+      card1.violations!.some((v) =>
+        v.code.startsWith("EDITORIAL/")
+      )
+    ).toBe(true);
+    expect(card1.recoverOptions?.forceProceed).toBe(true);
+
+    // forceAdvance moves to copy-ready; approve continues normally.
+    const card2 = await pipeline.forceAdvanceFromReviewBlocked(card0.id);
+    expect(card2.status).toBe("draft.copy-ready");
+
+    const card3 = await pipeline.approve(card0.id);
+    expect(card3.status).toBe("draft.images-ready");
+
+    const card4 = await pipeline.approve(card0.id);
+    expect(card4.status).toBe("exported");
   });
 });

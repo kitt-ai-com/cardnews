@@ -26,7 +26,8 @@ import type { CardStatus } from "../schemas/card-status";
 import { validateStructure } from "../validators/structure";
 import { validateDensity } from "../validators/density";
 import { validateContext } from "../validators/context";
-import { merge } from "../validators/types";
+import { validateEditorial } from "../validators/editorial";
+import { merge, ok, fail } from "../validators/types";
 import { withRetry } from "./retry";
 import { describeApprove } from "./approve";
 
@@ -119,6 +120,21 @@ function buildPagesFromAnalyst(out: AnalystOutput): Page[] {
   }));
 }
 
+function buildV2PagesFromAnalyst(out: AnalystOutput): Page[] {
+  return out.pages.map((p) => ({
+    index: p.index,
+    role: p.role,
+    layout: p.layout,
+    message: p.message,
+    mappingNote: p.mappingNote,
+    copyIntent: p.copyIntent,
+    claims: p.claims ?? [],
+    infoPattern: p.infoPattern,
+    copy: { title: p.workingTitle },
+    manualEdit: false,
+  }));
+}
+
 function buildFailedShellPages(): Page[] {
   return [
     {
@@ -173,10 +189,8 @@ export class Pipeline {
 
   async start(args: StartArgs): Promise<Card> {
     const requestedVersion = args.pipelineVersion ?? "v1-mocked";
-    if (requestedVersion !== "v1-mocked") {
-      throw new Error(
-        "v2-editorial pipeline not implemented in M1 (NotImplementedError)"
-      );
+    if (requestedVersion === "v2-editorial") {
+      return this.startV2(args);
     }
 
     const id = this.idGen();
@@ -246,6 +260,108 @@ export class Pipeline {
     return card;
   }
 
+  private async startV2(args: StartArgs): Promise<Card> {
+    const id = this.idGen();
+    const createdAt = this.now();
+
+    // Step 0: optional fact-check (same as v1).
+    let factCheck: FactCheckerOutput | undefined;
+    if (args.sourcePolicy.factCheckMode !== "skip") {
+      factCheck = await this.deps.factChecker.run({
+        topic: args.topic,
+        sourceText: args.sourceText,
+        sourcePolicy: args.sourcePolicy,
+      });
+    }
+
+    // Step 1: Analyst v2 — emits Claim Ledger + thesis + arc + pages.
+    // Schema parsing inside the runner does the heavy lifting; we additionally
+    // assemble the candidate card to exercise the v2 superRefine
+    // (claim referential integrity, copyIntent presence, page-role positions).
+    const analystInput = buildAnalystInput(args, factCheck);
+
+    const retry = await withRetry<AnalystOutput>({
+      fn: () => this.deps.analyst.run(analystInput),
+      validate: (out) => {
+        try {
+          this.assembleV2CardForValidation({
+            id,
+            args,
+            analyst: out,
+            createdAt,
+          });
+          return ok();
+        } catch (err) {
+          return fail([
+            {
+              level: "L1",
+              code: "ANALYST/V2_SHAPE",
+              message:
+                err instanceof Error ? err.message : String(err),
+            },
+          ]);
+        }
+      },
+      maxAttempts: MAX_ATTEMPTS,
+    });
+
+    if (!retry.ok || !retry.value) {
+      const failed = this.buildFailedCard({
+        id,
+        args,
+        createdAt,
+        failedStage: "analyst",
+        violations: retry.violations,
+      });
+      await this.deps.stateStore.withLock(id, async () => {
+        await this.deps.stateStore.write(id, failed);
+      });
+      return failed;
+    }
+
+    const analystOut = retry.value;
+    const card = this.buildV2CardFromAnalyst({
+      id,
+      args,
+      analyst: analystOut,
+      createdAt,
+    });
+
+    await this.deps.stateStore.withLock(id, async () => {
+      await this.deps.stateStore.write(id, card);
+    });
+    return card;
+  }
+
+  /**
+   * v2-editorial recover path: user has reviewed the violations on a
+   * draft.review-blocked card and chosen to force-proceed. Move directly
+   * to draft.copy-ready so approve() can advance to imaging.
+   */
+  async forceAdvanceFromReviewBlocked(cardId: string): Promise<Card> {
+    return this.deps.stateStore.withLock(cardId, async () => {
+      const current = await this.deps.stateStore.read(cardId);
+      if (!current) {
+        throw new Error(`card not found: ${cardId}`);
+      }
+      if (current.status !== "draft.review-blocked") {
+        throw new Error(
+          `forceAdvanceFromReviewBlocked requires draft.review-blocked, got ${current.status}`
+        );
+      }
+      const advanced: Card = CardSchema.parse({
+        ...current,
+        status: "draft.copy-ready",
+        // keep violations[] for audit trail; clear recoverOptions since the
+        // user has made their choice.
+        recoverOptions: undefined,
+        updatedAt: this.now(),
+      });
+      await this.deps.stateStore.write(cardId, advanced);
+      return advanced;
+    });
+  }
+
   async approve(cardId: string): Promise<Card> {
     const current = await this.deps.stateStore.read(cardId);
     if (!current) {
@@ -303,6 +419,62 @@ export class Pipeline {
     });
   }
 
+  private assembleV2CardForValidation(args: {
+    id: string;
+    args: StartArgs;
+    analyst: AnalystOutput;
+    createdAt: string;
+  }): Card {
+    const pages = buildV2PagesFromAnalyst(args.analyst);
+    return CardSchema.parse({
+      id: args.id,
+      series: args.args.series.id,
+      preset: args.args.preset.id,
+      pipelineVersion: "v2-editorial",
+      topic: args.args.topic,
+      sourceText: args.args.sourceText,
+      sourcePolicy: args.args.sourcePolicy,
+      coreMessage: args.analyst.thesis,
+      thesis: args.analyst.thesis,
+      audienceQuestion: args.analyst.audienceQuestion,
+      narrativeArc: args.analyst.narrativeArc,
+      claimLedger: args.analyst.claimLedger,
+      pages,
+      status: "draft.claim-extracting" as CardStatus,
+      attempts: [],
+      createdAt: args.createdAt,
+      updatedAt: args.createdAt,
+    });
+  }
+
+  private buildV2CardFromAnalyst(args: {
+    id: string;
+    args: StartArgs;
+    analyst: AnalystOutput;
+    createdAt: string;
+  }): Card {
+    const pages = buildV2PagesFromAnalyst(args.analyst);
+    return CardSchema.parse({
+      id: args.id,
+      series: args.args.series.id,
+      preset: args.args.preset.id,
+      pipelineVersion: "v2-editorial",
+      topic: args.args.topic,
+      sourceText: args.args.sourceText,
+      sourcePolicy: args.args.sourcePolicy,
+      coreMessage: args.analyst.thesis,
+      thesis: args.analyst.thesis,
+      audienceQuestion: args.analyst.audienceQuestion,
+      narrativeArc: args.analyst.narrativeArc,
+      claimLedger: args.analyst.claimLedger,
+      pages,
+      status: "draft.claims-ready" as CardStatus,
+      attempts: [],
+      createdAt: args.createdAt,
+      updatedAt: this.now(),
+    });
+  }
+
   private buildFailedCard(args: {
     id: string;
     args: StartArgs;
@@ -346,72 +518,157 @@ export class Pipeline {
       };
       await this.deps.stateStore.write(card.id, writingCard);
 
-      const copyContext: CopyContext = {
-        tone: "default",
-        recurringTerms: [],
-        usedExamples: [],
-        forbiddenRepeats: [],
-      };
+      const isV2 = writingCard.pipelineVersion === "v2-editorial";
 
-      const updatedPages: Page[] = [...writingCard.pages];
+      // For v2, we wrap the per-page copywriter loop in withRetry against the
+      // Editorial Review check (up to 3 attempts). Each retry re-runs all body
+      // pages with the prior violations attached so the Copywriter can fix.
+      // For v1, no editorial review — single pass through the loop.
+      let priorViolations: Violation[] = [];
+      let attempts = 0;
+      const maxEditorialAttempts = isV2 ? MAX_ATTEMPTS : 1;
 
-      for (let i = 0; i < updatedPages.length; i++) {
-        const page = updatedPages[i];
-        if (page.role !== "body") continue;
-
-        const input: CopywriterPageInput = {
-          series: {
-            name: card.series,
-            audience: "",
-            tone: copyContext.tone,
-            branding: { seriesTag: "" },
-          },
-          outline: writingCard.coreMessage,
-          page: {
-            index: page.index,
-            role: page.role,
-            layout: page.layout,
-            workingTitle: page.copy.title,
-            message: page.message,
-            mappingNote: page.mappingNote,
-          },
-          copyContext,
-        };
-
-        const retry = await withRetry<CopywriterPageOutput>({
-          fn: () => this.deps.copywriter.run(input),
-          validate: (out) => {
-            const candidate: Page = { ...page, copy: out.copy };
-            return merge(
-              validateDensity({ pages: [candidate] }),
-              validateContext({ pages: [candidate] })
-            );
-          },
-          maxAttempts: MAX_ATTEMPTS,
+      while (attempts < maxEditorialAttempts) {
+        attempts++;
+        const loopResult = await this.runCopywriterLoop(writingCard, {
+          fixViolations: priorViolations,
         });
 
-        if (!retry.ok || !retry.value) {
+        if (loopResult.kind === "failed") {
           const failed = this.buildFailedCardFromCard({
             base: writingCard,
             failedStage: "copywriter",
-            violations: retry.violations,
+            violations: loopResult.violations,
           });
           await this.deps.stateStore.write(card.id, failed);
           return failed;
         }
 
-        updatedPages[i] = { ...page, copy: retry.value.copy };
+        const candidate: Card = CardSchema.parse({
+          ...writingCard,
+          pages: loopResult.pages,
+          status: "draft.copy-ready",
+          updatedAt: this.now(),
+        });
+
+        if (!isV2) {
+          await this.deps.stateStore.write(card.id, candidate);
+          return candidate;
+        }
+
+        // v2: run Editorial Review.
+        const review = await validateEditorial(candidate);
+        if (review.ok) {
+          await this.deps.stateStore.write(card.id, candidate);
+          return candidate;
+        }
+
+        priorViolations = review.violations;
+        // Loop again unless we're out of attempts.
       }
 
-      const ready: Card = CardSchema.parse({
+      // Editorial Review still failing after MAX_ATTEMPTS — transition to
+      // draft.review-blocked so the user can decide (force / manual / restart).
+      const blocked: Card = CardSchema.parse({
         ...writingCard,
-        pages: updatedPages,
-        status: "draft.copy-ready",
+        // Persist the latest copy so the user sees what's blocked.
+        pages: writingCard.pages,
+        status: "draft.review-blocked",
+        violations: priorViolations,
+        recoverOptions: {
+          forceProceed: true,
+          manualEdit: true,
+          restart: true,
+        },
         updatedAt: this.now(),
       });
-      await this.deps.stateStore.write(card.id, ready);
-      return ready;
+      await this.deps.stateStore.write(card.id, blocked);
+      return blocked;
     });
+  }
+
+  /**
+   * Single pass of the per-page Copywriter loop. Returns either the updated
+   * pages (success) or the violations (failure) — does NOT touch the state
+   * store. Caller is responsible for transitioning the Card.
+   */
+  private async runCopywriterLoop(
+    writingCard: Card,
+    opts: { fixViolations: Violation[] }
+  ): Promise<
+    | { kind: "ok"; pages: Page[] }
+    | { kind: "failed"; violations: Violation[] }
+  > {
+    const isV2 = writingCard.pipelineVersion === "v2-editorial";
+    const ledgerById = new Map(
+      writingCard.claimLedger?.claims.map((c) => [c.id, c]) ?? []
+    );
+
+    const copyContext: CopyContext = {
+      tone: "default",
+      recurringTerms: [],
+      usedExamples: [],
+      forbiddenRepeats: [],
+    };
+
+    const updatedPages: Page[] = [...writingCard.pages];
+
+    for (let i = 0; i < updatedPages.length; i++) {
+      const page = updatedPages[i];
+      if (page.role !== "body") continue;
+
+      const pageClaimIds = page.claims ?? [];
+      const ledgerSlice = isV2
+        ? pageClaimIds
+            .map((cid) => ledgerById.get(cid))
+            .filter((c): c is NonNullable<typeof c> => c !== undefined)
+        : undefined;
+
+      const input: CopywriterPageInput = {
+        series: {
+          name: writingCard.series,
+          audience: "",
+          tone: copyContext.tone,
+          branding: { seriesTag: "" },
+        },
+        outline: writingCard.coreMessage,
+        page: {
+          index: page.index,
+          role: page.role,
+          layout: page.layout,
+          workingTitle: page.copy.title,
+          message: page.message,
+          mappingNote: page.mappingNote,
+          copyIntent: page.copyIntent,
+          claims: pageClaimIds,
+          infoPattern: page.infoPattern,
+        },
+        ledgerSlice,
+        copyContext,
+        fixViolations:
+          opts.fixViolations.length > 0 ? opts.fixViolations : undefined,
+      };
+
+      const retry = await withRetry<CopywriterPageOutput>({
+        fn: () => this.deps.copywriter.run(input),
+        validate: (out) => {
+          const candidate: Page = { ...page, copy: out.copy };
+          return merge(
+            validateDensity({ pages: [candidate] }),
+            validateContext({ pages: [candidate] })
+          );
+        },
+        maxAttempts: MAX_ATTEMPTS,
+      });
+
+      if (!retry.ok || !retry.value) {
+        return { kind: "failed", violations: retry.violations };
+      }
+
+      updatedPages[i] = { ...page, copy: retry.value.copy };
+    }
+
+    return { kind: "ok", pages: updatedPages };
   }
 
   private async runImageDirector(card: Card): Promise<Card> {
