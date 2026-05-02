@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "m1:smoke": "bun run scripts/m1-smoke.ts"
   },
   "dependencies": {
     "zod": "^3.23.8"
