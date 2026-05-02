@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { CopyIntent } from "./copy-intent";
+import { InfoPatternId } from "./info-pattern";
 import { LayoutId } from "./preset";
 
 export const PageRole = z.enum(["cover", "body", "cta"]);
@@ -33,8 +35,17 @@ export const PageSchema = z.object({
   index: z.number().int().min(1),
   role: PageRole,
   layout: LayoutId,
+  copyIntent: CopyIntent.optional(),
+  infoPattern: InfoPatternId.optional(),
   message: z.string().min(1),
   mappingNote: z.string().min(1),
+  // v2 array fields are optional (no default). Rationale: existing v1 callers
+  // construct Page TS literals directly without parse; .default([]) would force
+  // those forbidden-scope callers to supply [], breaking typecheck. Parsing
+  // still treats omission as "no claims/notes" thanks to optionality.
+  claims: z.array(z.string()).optional(),
+  unsupportedClaims: z.array(z.string()).optional(),
+  sourceNotes: z.array(z.string()).optional(),
   copy: Copy,
   image: PageImage.optional(),
   manualEdit: z.boolean().default(false),
