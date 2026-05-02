@@ -1,0 +1,25 @@
+{
+  "id": "C-dark-modern",
+  "name": "다크 모던 베이스",
+  "canvas": { "width": 1080, "height": 1350 },
+  "colors": {
+    "background": "#0e0e10",
+    "text": "#ffffff",
+    "accent": "#888888",
+    "muted": "rgba(255,255,255,0.55)"
+  },
+  "typography": {
+    "fontFamily": ["Pretendard", "Noto Sans KR", "sans-serif"],
+    "title": { "size": 64, "weight": 900, "lineHeight": 1.15, "letterSpacing": -0.02 },
+    "body":  { "size": 34, "weight": 400, "lineHeight": 1.5,  "letterSpacing": -0.02 },
+    "label": { "size": 24, "weight": 700, "lineHeight": 1.2,  "letterSpacing": 0.075 },
+    "hierarchyRatio": 1.5
+  },
+  "spacing": {
+    "safeZone":      { "top": 60, "right": 48, "bottom": 60, "left": 48 },
+    "verticalBands": { "header": 0.15, "body": 0.7, "footer": 0.15 },
+    "contentRatio":  0.75
+  },
+  "layouts": ["cover", "cta", "P1", "P3"],
+  "imageStyle": "deep matte black background, neutral grey accent, soft volumetric glow, cinematic lighting, photorealistic 3D render, no text, no letters, no characters, vertical 1080x1350 composition"
+}

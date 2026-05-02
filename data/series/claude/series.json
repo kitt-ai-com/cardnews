@@ -1,0 +1,15 @@
+{
+  "id": "claude",
+  "name": "Claude 카드뉴스",
+  "theme": "AI / Claude Code / Claude 활용 정보",
+  "defaultPreset": "c1-dark-lime",
+  "audience": "개발자, AI 도구 관심층",
+  "tone": "친근하지만 전문적 — 정보성 우선, 입말 지향, 한자어 회피",
+  "branding": { "seriesTag": "CLAUDE CODE" },
+  "footerHandle": "@uhuru_nomadlife",
+  "trustedDomains": [
+    "code.claude.com",
+    "docs.claude.com",
+    "anthropic.com"
+  ]
+}
