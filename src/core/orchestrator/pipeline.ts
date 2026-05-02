@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import type { StateStore } from "../providers/state";
 import type { AgentPort } from "../agents/ports";
 import type {
@@ -30,6 +31,12 @@ import { validateEditorial } from "../validators/editorial";
 import { merge, ok, fail } from "../validators/types";
 import { withRetry } from "./retry";
 import { describeApprove } from "./approve";
+import type {
+  ExportConfig,
+  ExportResult,
+} from "../../exporters/png";
+
+export type ExporterFn = (config: ExportConfig) => Promise<ExportResult>;
 
 export interface PipelineDeps {
   stateStore: StateStore;
@@ -37,6 +44,16 @@ export interface PipelineDeps {
   copywriter: AgentPort<CopywriterPageInput, CopywriterPageOutput>;
   imageDirector: AgentPort<ImageDirectorInput, ImageDirectorOutput>;
   factChecker: AgentPort<FactCheckerInput, FactCheckerOutput>;
+  /**
+   * PNG exporter. Defaults to the real Puppeteer-backed exportCard at module
+   * level — tests inject a mock to avoid launching Chrome.
+   */
+  exporter?: ExporterFn;
+  /**
+   * Output directory root for PNG exports. Card export lands at
+   * `<exportRoot>/<series>/<cardId>/`. Defaults to "data/exports".
+   */
+  exportRoot?: string;
   now?: () => string;
   idGen?: () => string;
 }
@@ -176,15 +193,38 @@ function buildFailedShellPages(): Page[] {
   ];
 }
 
+/**
+ * Lazy default exporter: only requires puppeteer-core when the user actually
+ * approves a render. Avoids loading Chromium for test pipelines that mock the
+ * exporter.
+ */
+async function defaultExporter(config: ExportConfig): Promise<ExportResult> {
+  const mod = await import("../../exporters/png");
+  return mod.exportCard(config);
+}
+
+const MAX_RENDER_RETRIES = 3;
+
 export class Pipeline {
   private readonly deps: PipelineDeps;
   private readonly now: () => string;
   private readonly idGen: () => string;
+  private readonly exporter: ExporterFn;
+  private readonly exportRoot: string;
+  /**
+   * In-memory cache of the Series/Preset that started each card. Required
+   * because the Card on disk stores only string IDs; the renderer needs the
+   * fully-resolved objects. A future M3.G will swap this for a registry.
+   */
+  private readonly seriesByCardId = new Map<string, Series>();
+  private readonly presetByCardId = new Map<string, Preset>();
 
   constructor(deps: PipelineDeps) {
     this.deps = deps;
     this.now = deps.now ?? defaultNow;
     this.idGen = deps.idGen ?? defaultIdGen;
+    this.exporter = deps.exporter ?? defaultExporter;
+    this.exportRoot = deps.exportRoot ?? "data/exports";
   }
 
   async start(args: StartArgs): Promise<Card> {
@@ -194,6 +234,8 @@ export class Pipeline {
     }
 
     const id = this.idGen();
+    this.seriesByCardId.set(id, args.series);
+    this.presetByCardId.set(id, args.preset);
     const createdAt = this.now();
 
     let factCheck: FactCheckerOutput | undefined;
@@ -262,6 +304,8 @@ export class Pipeline {
 
   private async startV2(args: StartArgs): Promise<Card> {
     const id = this.idGen();
+    this.seriesByCardId.set(id, args.series);
+    this.presetByCardId.set(id, args.preset);
     const createdAt = this.now();
 
     // Step 0: optional fact-check (same as v1).
@@ -379,7 +423,7 @@ export class Pipeline {
       case "draft.imaging":
         return this.runImageDirector(current);
       case "draft.rendering":
-        return this.markExportedStub(current);
+        return this.runRenderAndExport(current);
       default:
         return current;
     }
@@ -594,7 +638,15 @@ export class Pipeline {
    */
   private async runCopywriterLoop(
     writingCard: Card,
-    opts: { fixViolations: Violation[] }
+    opts: {
+      fixViolations: Violation[];
+      /**
+       * If provided, only re-run Copywriter for body pages whose `index` is in
+       * this set. Other pages keep their existing copy. Used by the L2 render
+       * rollback path to fix only the overflowing pages.
+       */
+      onlyPageIndices?: Set<number>;
+    }
   ): Promise<
     | { kind: "ok"; pages: Page[] }
     | { kind: "failed"; violations: Violation[] }
@@ -616,6 +668,9 @@ export class Pipeline {
     for (let i = 0; i < updatedPages.length; i++) {
       const page = updatedPages[i];
       if (page.role !== "body") continue;
+      if (opts.onlyPageIndices && !opts.onlyPageIndices.has(page.index)) {
+        continue;
+      }
 
       const pageClaimIds = page.claims ?? [];
       const ledgerSlice = isV2
@@ -729,15 +784,141 @@ export class Pipeline {
     });
   }
 
-  private async markExportedStub(card: Card): Promise<Card> {
-    return this.deps.stateStore.withLock(card.id, async () => {
-      const exported: Card = CardSchema.parse({
-        ...card,
-        status: "exported",
-        updatedAt: this.now(),
+  /**
+   * M3.E: full render + export with L2 measurement rollback.
+   *
+   * Flow:
+   *   1. Resolve preset/series from the in-memory cache (set during start()).
+   *   2. Status → draft.rendering, persist.
+   *   3. Call exporter; collect L2 violations.
+   *   4. If no violations: status → exported, persist, return.
+   *   5. Otherwise: rewrite the affected pages via Copywriter (passing
+   *      `fixViolations`), re-run ImageDirector for those pages, recurse into
+   *      step 3. Bounded by MAX_RENDER_RETRIES (3).
+   *   6. After exhausting retries: write as draft.failed with the final L2
+   *      violations attached.
+   */
+  private async runRenderAndExport(card: Card): Promise<Card> {
+    const series = this.seriesByCardId.get(card.id);
+    const preset = this.presetByCardId.get(card.id);
+    if (!series || !preset) {
+      throw new Error(
+        `Pipeline.runRenderAndExport: series/preset not registered for card ${card.id}. start() must be called on the same Pipeline instance.`
+      );
+    }
+
+    let working = card;
+
+    for (let attempt = 0; attempt < MAX_RENDER_RETRIES; attempt++) {
+      // Transition into draft.rendering.
+      working = await this.deps.stateStore.withLock(working.id, async () => {
+        const next: Card = {
+          ...working,
+          status: "draft.rendering",
+          updatedAt: this.now(),
+        };
+        await this.deps.stateStore.write(next.id, next);
+        return next;
       });
-      await this.deps.stateStore.write(card.id, exported);
-      return exported;
+
+      const outDir = path.posix.join(
+        this.exportRoot,
+        series.id,
+        working.id
+      );
+      const result = await this.exporter({
+        card: working,
+        preset,
+        series,
+        outDir,
+      });
+
+      if (result.l2Violations.length === 0) {
+        // Success — atomic swap already done by the exporter.
+        return this.deps.stateStore.withLock(working.id, async () => {
+          const exported: Card = CardSchema.parse({
+            ...working,
+            status: "exported",
+            updatedAt: this.now(),
+          });
+          await this.deps.stateStore.write(exported.id, exported);
+          return exported;
+        });
+      }
+
+      // L2 violations: roll back the affected pages through Copywriter +
+      // ImageDirector and try again.
+      const violationViolations: Violation[] = result.l2Violations.map((v) => ({
+        level: "L2" as const,
+        code: v.code,
+        message: v.message,
+        pageIndex: v.pageIndex,
+        field: v.field,
+      }));
+      const affectedPageIndices = new Set(
+        result.l2Violations.map((v) => v.pageIndex)
+      );
+
+      // Status → draft.writing, persist with violations attached for visibility.
+      working = await this.deps.stateStore.withLock(working.id, async () => {
+        const next: Card = {
+          ...working,
+          status: "draft.writing",
+          violations: violationViolations,
+          updatedAt: this.now(),
+        };
+        await this.deps.stateStore.write(next.id, next);
+        return next;
+      });
+
+      // Re-run Copywriter only for the affected body pages.
+      const rewriteResult = await this.runCopywriterLoop(working, {
+        fixViolations: violationViolations,
+        onlyPageIndices: affectedPageIndices,
+      });
+      if (rewriteResult.kind === "failed") {
+        const failed = this.buildFailedCardFromCard({
+          base: working,
+          failedStage: "copywriter",
+          violations: rewriteResult.violations,
+        });
+        await this.deps.stateStore.withLock(working.id, async () => {
+          await this.deps.stateStore.write(failed.id, failed);
+        });
+        return failed;
+      }
+
+      working = await this.deps.stateStore.withLock(working.id, async () => {
+        const next: Card = CardSchema.parse({
+          ...working,
+          pages: rewriteResult.pages,
+          status: "draft.copy-ready",
+          updatedAt: this.now(),
+        });
+        await this.deps.stateStore.write(next.id, next);
+        return next;
+      });
+
+      // Re-run ImageDirector for the affected pages so any image regen happens
+      // before the next export attempt. Going through the standard transition
+      // (draft.imaging → draft.images-ready) keeps the status machine honest.
+      working = await this.runImageDirector(working);
+
+      // Loop: next iteration retries the export.
+    }
+
+    // Out of retries — record failure with the latest violations.
+    return this.deps.stateStore.withLock(working.id, async () => {
+      const failed = this.buildFailedCardFromCard({
+        base: working,
+        failedStage: "image-director",
+        violations: working.violations ?? [],
+      });
+      // The render path can't fail with stage "render-validate" yet — the
+      // failedStage enum doesn't include it. Keep it on image-director for now;
+      // the violations list carries the L2 codes so callers can route.
+      await this.deps.stateStore.write(failed.id, failed);
+      return failed;
     });
   }
 

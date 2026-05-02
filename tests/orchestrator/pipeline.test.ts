@@ -2,8 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Pipeline } from "@core/orchestrator/pipeline";
+import { Pipeline, type ExporterFn } from "@core/orchestrator/pipeline";
 import { FileStateStore } from "@impl/file-state-store";
+import type {
+  ExportConfig,
+  ExportResult,
+} from "../../src/exporters/png";
 import {
   makeMockAnalyst,
   makeMockCopywriter,
@@ -68,7 +72,22 @@ const sourcePolicy: SourcePolicy = {
   factCheckMode: "skip",
 };
 
-function makePipeline() {
+/**
+ * Default test exporter: succeeds with no L2 violations and reports every
+ * page index as exported. Used wherever a test only cares about the status
+ * machine, not the renderer.
+ */
+const passingExporter: ExporterFn = async (
+  config: ExportConfig
+): Promise<ExportResult> => ({
+  runId: "test-run",
+  exportedPages: config.card.pages.map((p) => p.index),
+  measurements: [],
+  l2Violations: [],
+  finalDir: config.outDir,
+});
+
+function makePipeline(opts: { exporter?: ExporterFn } = {}) {
   const stateStore = new FileStateStore(tmpRoot);
   const pipeline = new Pipeline({
     stateStore,
@@ -76,6 +95,7 @@ function makePipeline() {
     copywriter: makeMockCopywriter(),
     imageDirector: makeMockImageDirector(),
     factChecker: makeMockFactChecker(),
+    exporter: opts.exporter ?? passingExporter,
     now: () => "2026-05-02T00:00:00.000Z",
     idGen: () => "card-test-001",
   });
@@ -208,6 +228,7 @@ describe("Pipeline", () => {
       copywriter: cleanCopywriter,
       imageDirector: makeMockImageDirector(),
       factChecker: makeMockFactChecker(),
+      exporter: passingExporter,
       now: () => "2026-05-02T00:00:00.000Z",
       idGen: () => "card-test-v2-happy",
     });
@@ -259,6 +280,7 @@ describe("Pipeline", () => {
       copywriter: evilCopywriter,
       imageDirector: makeMockImageDirector(),
       factChecker: makeMockFactChecker(),
+      exporter: passingExporter,
       now: () => "2026-05-02T00:00:00.000Z",
       idGen: () => "card-test-evil",
     });
@@ -292,5 +314,125 @@ describe("Pipeline", () => {
 
     const card4 = await pipeline.approve(card0.id);
     expect(card4.status).toBe("exported");
+  });
+
+  it("v1: L2 violation on first export retries through writing → copy-ready → imaging → exported", async () => {
+    const stateStore = new FileStateStore(tmpRoot);
+
+    let attemptCount = 0;
+    const observedStatuses: string[] = [];
+
+    const flakyExporter: ExporterFn = async (config) => {
+      attemptCount++;
+      // Snapshot the on-disk status when the exporter is invoked. By contract
+      // the pipeline transitions to draft.rendering before calling us, so this
+      // must always read "draft.rendering".
+      const card = await stateStore.read(config.card.id);
+      if (card) observedStatuses.push(card.status);
+
+      if (attemptCount === 1) {
+        // Pretend page 2 overflowed.
+        return {
+          runId: "run-bad-1",
+          exportedPages: config.card.pages.map((p) => p.index),
+          measurements: [],
+          l2Violations: [
+            {
+              code: "L2/SENTENCE_OVERFLOW",
+              pageIndex: 2,
+              field: "body",
+              actualLines: 4,
+              message: "page 2 body 4 lines",
+            },
+          ],
+          finalDir: `${config.outDir}/.runs/run-bad-1`,
+        };
+      }
+      return {
+        runId: "run-good-2",
+        exportedPages: config.card.pages.map((p) => p.index),
+        measurements: [],
+        l2Violations: [],
+        finalDir: config.outDir,
+      };
+    };
+
+    const pipeline = new Pipeline({
+      stateStore,
+      analyst: makeMockAnalyst(),
+      copywriter: makeMockCopywriter(),
+      imageDirector: makeMockImageDirector(),
+      factChecker: makeMockFactChecker(),
+      exporter: flakyExporter,
+      now: () => "2026-05-02T00:00:00.000Z",
+      idGen: () => "card-test-l2",
+    });
+
+    const card0 = await pipeline.start({
+      series,
+      preset,
+      topic: "L2 test topic",
+      sourcePolicy,
+    });
+    expect(card0.status).toBe("draft.outline-ready");
+
+    const card1 = await pipeline.approve(card0.id);
+    expect(card1.status).toBe("draft.copy-ready");
+
+    const card2 = await pipeline.approve(card0.id);
+    expect(card2.status).toBe("draft.images-ready");
+
+    const card3 = await pipeline.approve(card0.id);
+    // After L2 rollback + retry, must arrive at exported.
+    expect(card3.status).toBe("exported");
+    expect(attemptCount).toBe(2);
+    // Both export attempts saw draft.rendering on disk.
+    expect(observedStatuses).toEqual(["draft.rendering", "draft.rendering"]);
+  });
+
+  it("v1: L2 violation persisting beyond MAX_RENDER_RETRIES lands draft.failed", async () => {
+    const stateStore = new FileStateStore(tmpRoot);
+
+    const alwaysFailingExporter: ExporterFn = async (config) => ({
+      runId: "run-fail",
+      exportedPages: config.card.pages.map((p) => p.index),
+      measurements: [],
+      l2Violations: [
+        {
+          code: "L2/SENTENCE_OVERFLOW",
+          pageIndex: 2,
+          field: "body",
+          actualLines: 5,
+          message: "page 2 body too long",
+        },
+      ],
+      finalDir: `${config.outDir}/.runs/run-fail`,
+    });
+
+    const pipeline = new Pipeline({
+      stateStore,
+      analyst: makeMockAnalyst(),
+      copywriter: makeMockCopywriter(),
+      imageDirector: makeMockImageDirector(),
+      factChecker: makeMockFactChecker(),
+      exporter: alwaysFailingExporter,
+      now: () => "2026-05-02T00:00:00.000Z",
+      idGen: () => "card-test-l2-perma",
+    });
+
+    const card0 = await pipeline.start({
+      series,
+      preset,
+      topic: "permanent overflow",
+      sourcePolicy,
+    });
+    await pipeline.approve(card0.id); // copy-ready
+    await pipeline.approve(card0.id); // images-ready
+    const card3 = await pipeline.approve(card0.id);
+
+    expect(card3.status).toBe("draft.failed");
+    expect(card3.violations?.some((v) => v.code === "L2/SENTENCE_OVERFLOW")).toBe(
+      true
+    );
   });
 });
