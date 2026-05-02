@@ -1,0 +1,25 @@
+{
+  "id": "D-editorial",
+  "name": "에디토리얼 베이스 (stub)",
+  "canvas": { "width": 1080, "height": 1350 },
+  "colors": {
+    "background": "#f5f1ea",
+    "text": "#1a1a1a",
+    "accent": "#a8412c",
+    "muted": "rgba(26,26,26,0.55)"
+  },
+  "typography": {
+    "fontFamily": ["Pretendard", "Noto Serif KR", "serif"],
+    "title": { "size": 60, "weight": 800, "lineHeight": 1.2, "letterSpacing": -0.02 },
+    "body":  { "size": 32, "weight": 400, "lineHeight": 1.6, "letterSpacing": -0.02 },
+    "label": { "size": 22, "weight": 600, "lineHeight": 1.2, "letterSpacing": 0.05 },
+    "hierarchyRatio": 1.5
+  },
+  "spacing": {
+    "safeZone":      { "top": 60, "right": 48, "bottom": 60, "left": 48 },
+    "verticalBands": { "header": 0.15, "body": 0.7, "footer": 0.15 },
+    "contentRatio":  0.75
+  },
+  "layouts": ["cover", "cta", "P1"],
+  "imageStyle": "editorial magazine background, warm tone, refined composition, no text, no letters, vertical 1080x1350 composition"
+}

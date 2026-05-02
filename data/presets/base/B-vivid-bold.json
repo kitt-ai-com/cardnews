@@ -1,0 +1,25 @@
+{
+  "id": "B-vivid-bold",
+  "name": "비비드 볼드 베이스 (stub)",
+  "canvas": { "width": 1080, "height": 1350 },
+  "colors": {
+    "background": "#ff3366",
+    "text": "#ffffff",
+    "accent": "#ffe600",
+    "muted": "rgba(255,255,255,0.7)"
+  },
+  "typography": {
+    "fontFamily": ["Pretendard", "Noto Sans KR", "sans-serif"],
+    "title": { "size": 72, "weight": 900, "lineHeight": 1.1, "letterSpacing": -0.02 },
+    "body":  { "size": 36, "weight": 500, "lineHeight": 1.4, "letterSpacing": -0.02 },
+    "label": { "size": 26, "weight": 700, "lineHeight": 1.2, "letterSpacing": 0.075 },
+    "hierarchyRatio": 1.5
+  },
+  "spacing": {
+    "safeZone":      { "top": 60, "right": 48, "bottom": 60, "left": 48 },
+    "verticalBands": { "header": 0.15, "body": 0.7, "footer": 0.15 },
+    "contentRatio":  0.75
+  },
+  "layouts": ["cover", "cta", "P1"],
+  "imageStyle": "vivid bold background, high saturation, energetic composition, no text, no letters, vertical 1080x1350 composition"
+}
