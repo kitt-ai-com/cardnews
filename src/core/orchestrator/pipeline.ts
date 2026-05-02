@@ -553,6 +553,9 @@ export class Pipeline {
     });
   }
 
+  // M3.F: validateEditorial runs after the Copywriter loop for v2-editorial cards.
+  // On violations the card lands at draft.review-blocked and the user must
+  // approve recovery via forceAdvanceFromReviewBlocked or re-run Copywriter.
   private async runCopywriter(card: Card): Promise<Card> {
     return this.deps.stateStore.withLock(card.id, async () => {
       const writingCard: Card = {

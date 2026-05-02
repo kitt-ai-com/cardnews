@@ -303,6 +303,15 @@ describe("Pipeline", () => {
         v.code.startsWith("EDITORIAL/")
       )
     ).toBe(true);
+    // M3.F: validateEditorial enforcement runs after the Copywriter loop and
+    // surfaces at least one of the canonical editorial codes.
+    expect(
+      card1.violations!.some(
+        (v) =>
+          v.code === "EDITORIAL/EVALUATIVE_NO_BACKING" ||
+          v.code === "EDITORIAL/LOW_CONFIDENCE_ASSERTION"
+      )
+    ).toBe(true);
     expect(card1.recoverOptions?.forceProceed).toBe(true);
 
     // forceAdvance moves to copy-ready; approve continues normally.
