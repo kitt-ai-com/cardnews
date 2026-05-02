@@ -38,6 +38,9 @@
     position: absolute; top: 0; left: 0;
     width: 1080px; height: 1350px;
     transform: scale(0.5); transform-origin: top left;
+    /* Korean: break at word boundaries, not at characters. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   .strip {
