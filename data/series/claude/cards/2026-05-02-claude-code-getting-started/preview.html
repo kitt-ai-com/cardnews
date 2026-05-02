@@ -104,10 +104,36 @@
     color: var(--accent); font-size: 22px; font-weight: 600; opacity: 0.8;
   }
 
-  /* cover */
+  /* cover — half-bleed: image top ~54%, dark content bottom 46% */
+  .cover-bg {
+    position: absolute; left: 0; right: 0; top: 0; height: 740px;
+    background-size: cover; background-position: center;
+    z-index: 0;
+  }
+  .cover-bg::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom,
+        rgba(14,14,16,0.30) 0%,
+        rgba(14,14,16,0.20) 50%,
+        rgba(14,14,16,0.95) 92%,
+        rgba(14,14,16,1) 100%
+      );
+  }
+  .cover .strip,
+  .cover .pageno,
+  .cover .label,
+  .cover .h-title,
+  .cover .cover-sub,
+  .cover .footer-handle {
+    z-index: 1;
+  }
+  /* Cover-specific text positioning — pushed up another 30px */
+  .cover .label { top: 780px; }
+  .cover .h-title { top: 840px; font-size: 88px; }
   .cover-sub {
-    position: absolute; top: 780px; left: 48px; right: 48px;
-    color: var(--muted); font-size: 36px; line-height: 1.5; font-weight: 500;
+    position: absolute; top: 1050px; left: 48px; right: 48px;
+    color: var(--muted); font-size: 30px; line-height: 1.5; font-weight: 500;
   }
 
   /* body */
@@ -257,10 +283,11 @@
 
 <div class="grid">
 
-  <!-- 01 cover — Anthropic voice anchor -->
+  <!-- 01 cover — Anthropic voice anchor + bg image -->
   <div>
     <div class="card">
-      <div class="card-inner">
+      <div class="card-inner cover">
+        <div class="cover-bg" style="background-image: url('images/page-01-cover-v4.png')"></div>
         <div class="strip">
           <div class="avatar">U</div>
           <span class="handle">@uhuru_nomadlife</span>
@@ -270,16 +297,12 @@
         </div>
         <div class="pageno">01 / 08</div>
         <div class="label uppercase">START HERE</div>
-        <div class="h-title big">내 코드를 통째로<br><span class="accent">읽고·고치는</span> AI</div>
-        <div class="cover-sub">터미널·IDE·앱·웹 어디서든.<br>5분이면 시작.</div>
+        <div class="h-title big">Claude Code,<br><span class="accent">5분이면</span> 시작</div>
+        <div class="cover-sub">내 코드를 통째로 읽고·고치는 AI.<br>터미널·IDE·앱·웹 어디서든.</div>
         <div class="footer-handle">@uhuru_nomadlife</div>
-        <div class="dots">
-          <div class="d active"></div><div class="d"></div><div class="d"></div><div class="d"></div>
-          <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
-        </div>
       </div>
     </div>
-    <div class="card-label">01 · cover (Anthropic voice 차용)</div>
+    <div class="card-label">01 · cover (dots 제거 + 위로 올림)</div>
   </div>
 
   <!-- 02 정의 + 멀티 환경 -->
