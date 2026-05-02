@@ -1,0 +1,10 @@
+export { default as Cover } from "./cover";
+export { default as Cta } from "./cta";
+export { default as P1 } from "./P1";
+export { default as P2 } from "./P2";
+export { default as P3 } from "./P3";
+export { default as P4 } from "./P4";
+export { default as P5 } from "./P5";
+export { default as P6 } from "./P6";
+export { default as P7 } from "./P7";
+export type { LayoutProps } from "./cover";
