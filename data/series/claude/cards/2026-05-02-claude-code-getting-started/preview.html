@@ -2,32 +2,21 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>Claude Code 처음 시작 — v7 (team review applied)</title>
+<title>Claude Code 처음 시작 — v8 (analysis-grounded)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   :root {
-    --bg:        #0e0e10;
-    --bg-card:   rgba(255,255,255,0.04);
-    --bg-card-2: rgba(255,255,255,0.07);
-    --text:      #ffffff;
-    --accent:    #c4ff3d;
-    --positive:  #58e07a;
-    --negative:  #ff6b6b;
-    --alt:       #6fb8ff;
-    --muted:     rgba(255,255,255,0.55);
-    --muted-2:   rgba(255,255,255,0.30);
-    --border:    rgba(255,255,255,0.08);
-    --border-accent:  rgba(196,255,61,0.20);
-    --border-positive:rgba(88,224,122,0.25);
-    --border-negative:rgba(255,107,107,0.25);
-    --border-alt:     rgba(111,184,255,0.25);
-    --y-strip:   60px;
-    --y-pageno:  130px;
-    --y-label:   220px;
-    --y-title:   280px;
-    --y-content: 540px;
-    --y-callout: 1100px;
+    --bg: #0e0e10; --bg-card: rgba(255,255,255,0.04); --text: #ffffff;
+    --accent: #c4ff3d; --positive: #58e07a; --negative: #ff6b6b; --alt: #6fb8ff;
+    --muted: rgba(255,255,255,0.55); --muted-2: rgba(255,255,255,0.30);
+    --border: rgba(255,255,255,0.08);
+    --border-accent: rgba(196,255,61,0.20);
+    --border-positive: rgba(88,224,122,0.25);
+    --border-negative: rgba(255,107,107,0.25);
+    --border-alt: rgba(111,184,255,0.25);
+    --y-strip: 60px; --y-pageno: 130px; --y-label: 220px;
+    --y-title: 280px; --y-content: 540px; --y-callout: 1100px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: #1a1a1a; color: #ddd; font-family: "Pretendard", "Noto Sans KR", -apple-system, sans-serif; }
@@ -75,8 +64,7 @@
 
   .label {
     position: absolute; top: var(--y-label); left: 48px;
-    color: var(--accent);
-    font-size: 26px; font-weight: 700;
+    color: var(--accent); font-size: 26px; font-weight: 700;
     letter-spacing: -0.01em;
   }
   .label.uppercase { text-transform: uppercase; letter-spacing: 1.8px; }
@@ -86,13 +74,11 @@
     font-size: 80px; font-weight: 900; line-height: 1.12;
     letter-spacing: -0.025em;
   }
-  .h-title.big { font-size: 96px; }
-  .h-title .accent   { color: var(--accent); }
-  .h-title .alt      { color: var(--alt); }
+  .h-title.big { font-size: 88px; }
+  .h-title .accent { color: var(--accent); }
+  .h-title .alt { color: var(--alt); }
 
-  .content {
-    position: absolute; top: var(--y-content); left: 48px; right: 48px;
-  }
+  .content { position: absolute; top: var(--y-content); left: 48px; right: 48px; }
 
   .callout-slot { position: absolute; top: var(--y-callout); left: 48px; right: 48px; }
   .callout {
@@ -100,10 +86,8 @@
     border: 1px solid var(--border-accent);
     border-radius: 14px;
     padding: 26px 30px;
-    color: var(--text);
-    font-size: 26px; line-height: 1.45;
-    font-weight: 600;
-    text-align: center;
+    color: var(--text); font-size: 26px; line-height: 1.45;
+    font-weight: 600; text-align: center;
   }
   .callout .accent { color: var(--accent); font-weight: 800; }
   .callout.alt { background: rgba(111,184,255,0.06); border-color: var(--border-alt); }
@@ -126,7 +110,7 @@
     color: var(--muted); font-size: 36px; line-height: 1.5; font-weight: 500;
   }
 
-  /* body block */
+  /* body */
   .body-text { color: var(--text); font-size: 30px; font-weight: 500; line-height: 1.6; }
   .body-text .strong { color: var(--accent); font-weight: 700; }
   .body-text code {
@@ -136,29 +120,29 @@
   }
   .body-text p + p { margin-top: 28px; }
 
-  /* page 03 — comparison table */
-  .cmp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-  .cmp-table thead th {
-    color: var(--muted-2);
-    font-size: 24px; font-weight: 700;
-    letter-spacing: 0.06em;
-    text-align: left;
-    padding: 14px 18px;
-    border-bottom: 2px solid var(--border-accent);
+  /* page 03 — NEW misconception cards (X → ✓) */
+  .myth-list { display: flex; flex-direction: column; gap: 22px; }
+  .myth {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 28px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    align-items: start;
   }
-  .cmp-table thead th.col-a { color: var(--accent); }
-  .cmp-table thead th.col-b { color: var(--alt); }
-  .cmp-table tbody td {
-    padding: 18px;
-    font-size: 28px; line-height: 1.4;
-    vertical-align: top;
-    border-bottom: 1px solid var(--border);
+  .myth .num {
+    color: var(--muted-2); font-size: 24px; font-weight: 800;
+    letter-spacing: 0.05em;
   }
-  .cmp-table tbody tr:last-child td { border-bottom: none; }
-  .cmp-table .axis { color: var(--muted); font-size: 24px; font-weight: 600; width: 22%; }
-  .cmp-table .a-val { color: var(--accent); font-weight: 700; }
-  .cmp-table .b-val { color: var(--text); }
-  .cmp-table .sub { color: var(--muted); font-size: 22px; line-height: 1.35; display: block; margin-top: 4px; font-weight: 500; }
+  .myth .pair { display: flex; flex-direction: column; gap: 12px; }
+  .myth .row { display: grid; grid-template-columns: 50px 1fr; gap: 14px; align-items: start; }
+  .myth .mark.x { color: var(--negative); font-size: 32px; font-weight: 800; line-height: 1; }
+  .myth .mark.o { color: var(--positive); font-size: 32px; font-weight: 800; line-height: 1; }
+  .myth .text-x { color: var(--muted); font-size: 26px; line-height: 1.4; text-decoration: line-through; text-decoration-color: var(--negative); text-decoration-thickness: 2px; }
+  .myth .text-o { color: var(--text); font-size: 26px; line-height: 1.4; font-weight: 600; }
+  .myth .text-o .accent { color: var(--accent); }
 
   /* page 04 — feature grid */
   .feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
@@ -175,14 +159,13 @@
   .feat .feat-eg { color: var(--muted); font-size: 22px; line-height: 1.4; margin-top: auto; padding-top: 8px; }
   .feat .feat-eg code { background: rgba(196,255,61,0.10); color: var(--accent); padding: 1px 8px; border-radius: 4px; font-family: monospace; font-size: 20px; }
 
-  /* page 05 — pros/cons rows. Designer: badges all neutral. */
+  /* page 05 — pros/cons */
   .pc-grid { display: flex; flex-direction: column; gap: 16px; }
   .pc-grid .head {
     display: grid; grid-template-columns: 200px 1fr 1fr; gap: 14px;
     color: var(--muted-2); font-size: 22px; font-weight: 700;
     letter-spacing: 0.06em; padding: 0 8px 8px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
+    border-bottom: 1px solid var(--border); margin-bottom: 4px;
   }
   .pc-grid .head .pos { color: var(--positive); }
   .pc-grid .head .neg { color: var(--negative); }
@@ -206,53 +189,49 @@
   .pc-grid .cell .mark.pos { color: var(--positive); font-weight: 800; flex-shrink: 0; font-size: 26px; }
   .pc-grid .cell .mark.neg { color: var(--negative); font-weight: 800; flex-shrink: 0; font-size: 26px; }
 
-  /* page 06 — OS code sections */
-  .os-list { display: flex; flex-direction: column; gap: 26px; }
-  .os-list .os { display: flex; flex-direction: column; gap: 14px; }
+  /* page 06 — OS code */
+  .os-list { display: flex; flex-direction: column; gap: 22px; }
+  .os-list .os { display: flex; flex-direction: column; gap: 12px; }
   .os .os-name {
     color: var(--accent); font-size: 22px; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase;
   }
   .os .code {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px 24px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 22px;
     font-family: "JetBrains Mono", "SF Mono", monospace;
-    font-size: 24px; line-height: 1.45;
-    color: var(--text);
+    font-size: 24px; line-height: 1.45; color: var(--text);
     word-break: keep-all; overflow-wrap: anywhere;
   }
   .os .code .prompt { color: var(--accent); margin-right: 12px; user-select: none; }
 
-  /* page 07 — numbered steps. Designer: text size up, num colour to white. */
+  /* page 07 — steps */
   .steps { display: flex; flex-direction: column; gap: 22px; }
   .step { display: grid; grid-template-columns: 70px 1fr; gap: 22px; align-items: start; }
   .step .num {
     width: 70px; height: 70px; border-radius: 16px;
-    background: rgba(196,255,61,0.14);
-    color: var(--text); font-size: 32px; font-weight: 900;
+    background: rgba(196,255,61,0.14); color: var(--text);
+    font-size: 32px; font-weight: 900;
     display: flex; align-items: center; justify-content: center;
   }
-  .step .what { color: var(--text); font-size: 32px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+  .step .what { color: var(--text); font-size: 30px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
   .step .what .note { color: var(--muted); font-weight: 400; font-size: 22px; margin-left: 8px; }
   .step .code {
     background: var(--bg-card); border: 1px solid var(--border);
     border-radius: 10px; padding: 14px 20px;
     font-family: "JetBrains Mono", "SF Mono", monospace;
-    font-size: 26px; line-height: 1.4; color: var(--text);
+    font-size: 24px; line-height: 1.4; color: var(--text);
   }
   .step .code .prompt { color: var(--accent); margin-right: 10px; }
 
-  /* page 08 — CTA */
+  /* page 08 CTA */
   .cta-wrap { position: absolute; top: 360px; left: 48px; right: 48px; text-align: center; }
   .cta-wrap .label-c { color: var(--accent); font-size: 28px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 16px; }
   .cta-wrap .h-c { font-size: 96px; line-height: 1.05; font-weight: 900; letter-spacing: -0.025em; }
   .cta-wrap .h-c .accent { color: var(--accent); }
   .cta-wrap .sub-c { color: var(--muted); font-size: 28px; line-height: 1.5; margin-top: 32px; font-weight: 500; }
   .cta-wrap .ring {
-    width: 240px; height: 240px;
-    border-radius: 50%;
+    width: 240px; height: 240px; border-radius: 50%;
     border: 4px solid var(--accent);
     box-shadow: 0 0 80px rgba(196,255,61,0.25), inset 0 0 60px rgba(196,255,61,0.08);
     margin: 60px auto 44px;
@@ -262,10 +241,8 @@
   }
   .cta-wrap .ring .small { display: block; font-size: 18px; color: var(--muted); margin-top: 6px; letter-spacing: 0.12em; font-weight: 600; }
   .cta-wrap .pill {
-    display: inline-block;
-    background: var(--accent); color: var(--bg);
-    border-radius: 999px;
-    padding: 24px 56px;
+    display: inline-block; background: var(--accent); color: var(--bg);
+    border-radius: 999px; padding: 24px 56px;
     font-size: 32px; font-weight: 800;
     box-shadow: 0 0 60px rgba(196,255,61,0.25);
   }
@@ -275,12 +252,12 @@
 </style>
 </head>
 <body>
-<h1>Claude Code 처음 시작 — v7 <span style="color:#c4ff3d;font-weight:600;font-size:14px">team review applied</span></h1>
-<p class="meta">3 agent (Designer / Copywriter / Editorial Reviewer) 통합 적용 — 입말, 사실 완화, 색 시맨틱 수정</p>
+<h1>Claude Code 처음 시작 — v8 <span style="color:#c4ff3d;font-weight:600;font-size:14px">analysis-grounded</span></h1>
+<p class="meta">웹 리서치 분석(analysis.md) 기반 재구성 · 1-2페이지 multi-env 일관성 확보 · 03 카드는 입문자 오해 3가지로 교체 (Codex 비교 제거)</p>
 
 <div class="grid">
 
-  <!-- 01 cover -->
+  <!-- 01 cover — Anthropic voice anchor -->
   <div>
     <div class="card">
       <div class="card-inner">
@@ -293,8 +270,8 @@
         </div>
         <div class="pageno">01 / 08</div>
         <div class="label uppercase">START HERE</div>
-        <div class="h-title big">터미널에 AI<br><span class="accent">개발자</span>가 산다</div>
-        <div class="cover-sub">파일 읽고, 코드 고치고,<br>커밋까지 혼자 끝낸다.</div>
+        <div class="h-title big">내 코드를 통째로<br><span class="accent">읽고·고치는</span> AI</div>
+        <div class="cover-sub">터미널·IDE·앱·웹 어디서든.<br>5분이면 시작.</div>
         <div class="footer-handle">@uhuru_nomadlife</div>
         <div class="dots">
           <div class="d active"></div><div class="d"></div><div class="d"></div><div class="d"></div>
@@ -302,10 +279,10 @@
         </div>
       </div>
     </div>
-    <div class="card-label">01 · cover</div>
+    <div class="card-label">01 · cover (Anthropic voice 차용)</div>
   </div>
 
-  <!-- 02 정의 -->
+  <!-- 02 정의 + 멀티 환경 -->
   <div>
     <div class="card">
       <div class="card-inner">
@@ -316,83 +293,67 @@
         </div>
         <div class="pageno">02 / 08</div>
         <div class="label">한 줄 정의</div>
-        <div class="h-title">파일 읽고 명령 돌리고<br>그리고 <span class="accent">고친다</span></div>
+        <div class="h-title">Claude Code는<br><span class="accent">에이전트</span>다</div>
         <div class="content">
           <div class="body-text">
-            <p>터미널 띄워두면 그 안에서 코드 짜는 AI다.</p>
-            <p>프로젝트를 통째로 읽고, 여러 파일을 한꺼번에 고치고, 테스트 돌려보고, 커밋까지 남긴다.</p>
-            <p>읽고 → 돌리고 → 확인하기를 혼자서 반복한다.</p>
+            <p>Anthropic이 만든 에이전트형 코딩 도구. 자동완성이 아니라 일을 통째로 맡길 수 있다.</p>
+            <p>코드베이스 전체를 읽고, 여러 파일을 한꺼번에 고치고, 테스트 돌리고, 커밋까지 남긴다.</p>
+            <p><span class="strong">한 엔진, 다섯 표면</span> — 터미널·VS Code·JetBrains·데스크탑·웹 어디서든 같은 엔진.</p>
           </div>
         </div>
         <div class="callout-slot">
-          <div class="callout"><span class="accent">Opus 4.7</span> · 최대 1M 컨텍스트 · Pro·Max·Team·Enterprise</div>
+          <div class="callout"><span class="accent">Opus 4.7</span> · 1M 컨텍스트 · Pro $20/월 이상</div>
         </div>
         <div class="footer-handle">@uhuru_nomadlife</div>
       </div>
     </div>
-    <div class="card-label">02 · 정의</div>
+    <div class="card-label">02 · 정의 + multi-env (한 엔진, 다섯 표면)</div>
   </div>
 
-  <!-- 03 Codex CLI 비교 -->
+  <!-- 03 NEW: 입문자 오해 3가지 -->
   <div>
     <div class="card">
       <div class="card-inner">
         <div class="strip">
           <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
           <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
-          <span class="hashtag">#비교</span>
+          <span class="hashtag">#오해깨기</span>
         </div>
         <div class="pageno">03 / 08</div>
-        <div class="label">Codex CLI와 비교</div>
-        <div class="h-title">둘 다 <span class="accent">터미널</span> AI<br>뭐가 다를까</div>
+        <div class="label">입문자 오해</div>
+        <div class="h-title">처음 듣는 사람이<br><span class="accent">착각</span>하는 3가지</div>
         <div class="content">
-          <table class="cmp-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th class="col-a">Claude Code</th>
-                <th class="col-b">Codex CLI</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="axis">제작</td>
-                <td class="a-val">Anthropic</td>
-                <td class="b-val">OpenAI</td>
-              </tr>
-              <tr>
-                <td class="axis">기본 모델</td>
-                <td class="a-val">Opus 4.7<span class="sub">추론·설계 지향</span></td>
-                <td class="b-val">GPT-5-Codex<span class="sub">속도·비용 지향</span></td>
-              </tr>
-              <tr>
-                <td class="axis">컨텍스트</td>
-                <td class="a-val">최대 1M 토큰<span class="sub">코드베이스 통째로</span></td>
-                <td class="b-val">대형 컨텍스트<span class="sub">긴 작업 OK</span></td>
-              </tr>
-              <tr>
-                <td class="axis">멀티 에이전트</td>
-                <td class="a-val">병렬 작업</td>
-                <td class="b-val">git worktree 격리</td>
-              </tr>
-              <tr>
-                <td class="axis">라이선스</td>
-                <td class="a-val">독점</td>
-                <td class="b-val">오픈소스 (Apache)</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="callout-slot">
-          <div class="callout">Claude는 길게 생각하고, Codex는 <span class="accent">빨리 답</span>한다</div>
+          <div class="myth-list">
+            <div class="myth">
+              <div class="num">01</div>
+              <div class="pair">
+                <div class="row"><div class="mark x">✗</div><div class="text-x">무료인 줄 알았다</div></div>
+                <div class="row"><div class="mark o">✓</div><div class="text-o">Pro <span class="accent">$20/월</span> 이상 또는 API 종량제. claude.ai 무료 채팅과 다름</div></div>
+              </div>
+            </div>
+            <div class="myth">
+              <div class="num">02</div>
+              <div class="pair">
+                <div class="row"><div class="mark x">✗</div><div class="text-x">API 키 만들어야 한다</div></div>
+                <div class="row"><div class="mark o">✓</div><div class="text-o"><span class="accent">Pro 로그인</span>이면 끝. 키 발급은 옵션</div></div>
+              </div>
+            </div>
+            <div class="myth">
+              <div class="num">03</div>
+              <div class="pair">
+                <div class="row"><div class="mark x">✗</div><div class="text-x">터미널 못 쓰면 못 쓴다</div></div>
+                <div class="row"><div class="mark o">✓</div><div class="text-o">데스크탑·VS Code·웹 모두 <span class="accent">같은 엔진</span></div></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="footer-handle">@uhuru_nomadlife</div>
       </div>
     </div>
-    <div class="card-label">03 · 공정 비교</div>
+    <div class="card-label">03 · NEW 입문자 오해 깨기 (Codex 비교 제거)</div>
   </div>
 
-  <!-- 04 4가지 특징 -->
+  <!-- 04 4가지 특징 (v7 유지) -->
   <div>
     <div class="card">
       <div class="card-inner">
@@ -407,7 +368,7 @@
         <div class="content">
           <div class="feat-grid">
             <div class="feat">
-              <div class="feat-name">파일 맥락</div>
+              <div class="feat-name">코드베이스 통째</div>
               <div class="feat-desc">프로젝트를 통째로 본다. 관련 파일 알아서 찾는다.</div>
               <div class="feat-eg">예: <code>"로그인 버그 고쳐"</code> → auth/ 자동 탐색</div>
             </div>
@@ -423,8 +384,8 @@
             </div>
             <div class="feat">
               <div class="feat-name">내 손에 맞춤</div>
-              <div class="feat-desc">CLAUDE.md·Skills·Hooks·MCP로 팀 규칙을 코드처럼 박는다.</div>
-              <div class="feat-eg">예: 노트북·서버·CI 어디서나 똑같이</div>
+              <div class="feat-desc">CLAUDE.md·Skills·Hooks·MCP로 팀 규칙을 코드처럼.</div>
+              <div class="feat-eg">예: 내 컴퓨터·회사 CI 어디서나 동일</div>
             </div>
           </div>
         </div>
@@ -437,7 +398,7 @@
     <div class="card-label">04 · 4가지 특징</div>
   </div>
 
-  <!-- 05 설치 방법 -->
+  <!-- 05 설치 방법 — 02에서 풀어놨으니 자연스러움 -->
   <div>
     <div class="card">
       <div class="card-inner">
@@ -448,22 +409,18 @@
         </div>
         <div class="pageno">05 / 08</div>
         <div class="label">3가지 길</div>
-        <div class="h-title">당신에게 맞는<br><span class="accent">설치</span></div>
+        <div class="h-title">어디로<br><span class="accent">시작</span>할까</div>
         <div class="content">
           <div class="pc-grid">
-            <div class="head">
-              <div></div>
-              <div class="pos">장점</div>
-              <div class="neg">한계</div>
-            </div>
+            <div class="head"><div></div><div class="pos">장점</div><div class="neg">한계</div></div>
             <div class="row r1">
               <div class="badge">데스크탑<br>앱</div>
-              <div class="cell"><span class="mark pos">✓</span><span>GUI에서 diff 보기<br>여러 세션 동시 실행</span></div>
-              <div class="cell"><span class="mark neg">✗</span><span>터미널 명령<br>이어 쓰기 안 됨</span></div>
+              <div class="cell"><span class="mark pos">✓</span><span>GUI에서 diff 보기<br>여러 세션 동시</span></div>
+              <div class="cell"><span class="mark neg">✗</span><span>스크립트<br>이어 쓰기 어려움</span></div>
             </div>
             <div class="row r2">
               <div class="badge">터미널<br>CLI</div>
-              <div class="cell"><span class="mark pos">✓</span><span>자동 업데이트<br>스크립트에 끼워 쓰기</span></div>
+              <div class="cell"><span class="mark pos">✓</span><span>자동 업데이트<br>스크립트 자동화</span></div>
               <div class="cell"><span class="mark neg">✗</span><span>터미널 안 익숙하면<br>처음엔 막막</span></div>
             </div>
             <div class="row r3">
@@ -474,15 +431,15 @@
           </div>
         </div>
         <div class="callout-slot">
-          <div class="callout">처음이면 <span class="accent">데스크탑 앱</span>, 익숙해지면 터미널로 옮기면 된다</div>
+          <div class="callout">GUI 익숙하면 <span class="accent">데스크탑</span>, 터미널 익숙하면 <span class="accent">CLI</span></div>
         </div>
         <div class="footer-handle">@uhuru_nomadlife</div>
       </div>
     </div>
-    <div class="card-label">05 · 설치 방법</div>
+    <div class="card-label">05 · 3가지 길</div>
   </div>
 
-  <!-- 06 OS별 명령 -->
+  <!-- 06 OS별 명령 (winget 추가) -->
   <div>
     <div class="card">
       <div class="card-inner">
@@ -505,25 +462,25 @@
               <div class="code"><span class="prompt">PS&gt;</span>irm https://claude.ai/install.ps1 | iex</div>
             </div>
             <div class="os">
-              <div class="os-name">Homebrew (자동 업데이트)</div>
-              <div class="code"><span class="prompt">$</span>brew install --cask claude-code</div>
+              <div class="os-name">Windows (WinGet)</div>
+              <div class="code"><span class="prompt">&gt;</span>winget install Anthropic.ClaudeCode</div>
             </div>
             <div class="os">
-              <div class="os-name">설치 확인</div>
-              <div class="code"><span class="prompt">$</span>claude --version</div>
+              <div class="os-name">Homebrew · 설치 확인</div>
+              <div class="code"><span class="prompt">$</span>brew install --cask claude-code &nbsp;&middot;&nbsp; <span class="prompt">$</span>claude --version</div>
             </div>
           </div>
         </div>
         <div class="callout-slot">
-          <div class="callout alt">GUI 쓰고 싶으면 <span class="accent">claude.com/download</span>에서 앱 받기</div>
+          <div class="callout alt">GUI 앱은 <span class="accent">claude.com/download</span> · 무설치 웹은 <span class="accent">claude.ai/code</span></div>
         </div>
         <div class="footer-handle">@uhuru_nomadlife</div>
       </div>
     </div>
-    <div class="card-label">06 · OS별 명령</div>
+    <div class="card-label">06 · OS별 명령 (winget·web 추가)</div>
   </div>
 
-  <!-- 07 처음 실행 4단계 -->
+  <!-- 07 첫 4단계 (step1에 Pro 로그인 명시) -->
   <div>
     <div class="card">
       <div class="card-inner">
@@ -540,14 +497,14 @@
             <div class="step">
               <div class="num">1</div>
               <div>
-                <div class="what">일단 켠다 <span class="note">처음이면 로그인 안내가 뜬다</span></div>
+                <div class="what">일단 켠다 <span class="note">Pro 계정 로그인 자동</span></div>
                 <div class="code"><span class="prompt">$</span>claude</div>
               </div>
             </div>
             <div class="step">
               <div class="num">2</div>
               <div>
-                <div class="what">프로젝트부터 읽힌다 <span class="note">코드 안 보고 그냥 묻기</span></div>
+                <div class="what">프로젝트부터 읽힌다 <span class="note">코드 안 보고 묻기</span></div>
                 <div class="code"><span class="prompt">&gt;</span>이 프로젝트 뭐 하는 거야?</div>
               </div>
             </div>
@@ -561,7 +518,7 @@
             <div class="step">
               <div class="num">4</div>
               <div>
-                <div class="what">테스트 돌리고 커밋까지 <span class="note">한 번에 끝낸다</span></div>
+                <div class="what">테스트 + 커밋까지 <span class="note">한 번에 끝낸다</span></div>
                 <div class="code"><span class="prompt">&gt;</span>변경사항 의미 있는 메시지로 커밋</div>
               </div>
             </div>
@@ -589,7 +546,7 @@
           <div class="sub-c">명령어 한 줄 붙이면 설치 끝.<br>터미널에 AI 개발자 한 명 들인다.</div>
           <div class="ring">CLAUDE<br>CODE<span class="small">START</span></div>
           <div class="pill">지금 설치하기 →</div>
-          <div class="url">claude.com/download</div>
+          <div class="url">claude.com/download · code.claude.com/docs</div>
         </div>
         <div class="footer-handle">@uhuru_nomadlife</div>
       </div>
