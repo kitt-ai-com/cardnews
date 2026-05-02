@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Claude Code 처음 시작 — v7 (team review applied)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root {
+    --bg:        #0e0e10;
+    --bg-card:   rgba(255,255,255,0.04);
+    --bg-card-2: rgba(255,255,255,0.07);
+    --text:      #ffffff;
+    --accent:    #c4ff3d;
+    --positive:  #58e07a;
+    --negative:  #ff6b6b;
+    --alt:       #6fb8ff;
+    --muted:     rgba(255,255,255,0.55);
+    --muted-2:   rgba(255,255,255,0.30);
+    --border:    rgba(255,255,255,0.08);
+    --border-accent:  rgba(196,255,61,0.20);
+    --border-positive:rgba(88,224,122,0.25);
+    --border-negative:rgba(255,107,107,0.25);
+    --border-alt:     rgba(111,184,255,0.25);
+    --y-strip:   60px;
+    --y-pageno:  130px;
+    --y-label:   220px;
+    --y-title:   280px;
+    --y-content: 540px;
+    --y-callout: 1100px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #1a1a1a; color: #ddd; font-family: "Pretendard", "Noto Sans KR", -apple-system, sans-serif; }
+  body { padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  h1 { color: #fff; font-weight: 800; margin-bottom: 8px; }
+  .meta { color: #888; font-size: 13px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 540px); gap: 32px; }
+
+  .card {
+    width: 540px; height: 675px;
+    background: var(--bg); color: var(--text);
+    position: relative; overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    font-family: "Pretendard", "Noto Sans KR", sans-serif;
+    letter-spacing: -0.02em;
+  }
+  .card-inner {
+    position: absolute; top: 0; left: 0;
+    width: 1080px; height: 1350px;
+    transform: scale(0.5); transform-origin: top left;
+  }
+
+  .strip {
+    position: absolute; top: var(--y-strip); left: 48px; right: 48px;
+    display: flex; align-items: center; gap: 14px;
+    color: var(--muted); font-size: 24px; line-height: 1.2;
+  }
+  .strip .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--accent); color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; flex-shrink: 0;
+  }
+  .strip .handle { color: var(--text); font-weight: 700; }
+  .strip .sep { color: var(--muted-2); }
+  .strip .series { color: var(--muted); }
+  .strip .hashtag { margin-left: auto; color: var(--accent); font-weight: 600; font-size: 22px; }
+
+  .pageno {
+    position: absolute; top: var(--y-pageno); right: 48px;
+    color: var(--muted-2); font-size: 26px; font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .label {
+    position: absolute; top: var(--y-label); left: 48px;
+    color: var(--accent);
+    font-size: 26px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .label.uppercase { text-transform: uppercase; letter-spacing: 1.8px; }
+
+  .h-title {
+    position: absolute; top: var(--y-title); left: 48px; right: 48px;
+    font-size: 80px; font-weight: 900; line-height: 1.12;
+    letter-spacing: -0.025em;
+  }
+  .h-title.big { font-size: 96px; }
+  .h-title .accent   { color: var(--accent); }
+  .h-title .alt      { color: var(--alt); }
+
+  .content {
+    position: absolute; top: var(--y-content); left: 48px; right: 48px;
+  }
+
+  .callout-slot { position: absolute; top: var(--y-callout); left: 48px; right: 48px; }
+  .callout {
+    background: rgba(196,255,61,0.06);
+    border: 1px solid var(--border-accent);
+    border-radius: 14px;
+    padding: 26px 30px;
+    color: var(--text);
+    font-size: 26px; line-height: 1.45;
+    font-weight: 600;
+    text-align: center;
+  }
+  .callout .accent { color: var(--accent); font-weight: 800; }
+  .callout.alt { background: rgba(111,184,255,0.06); border-color: var(--border-alt); }
+
+  .dots {
+    position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 14px;
+  }
+  .dots .d { width: 12px; height: 12px; border-radius: 50%; background: var(--muted-2); }
+  .dots .d.active { background: var(--text); }
+
+  .footer-handle {
+    position: absolute; bottom: 60px; left: 48px;
+    color: var(--accent); font-size: 22px; font-weight: 600; opacity: 0.8;
+  }
+
+  /* cover */
+  .cover-sub {
+    position: absolute; top: 780px; left: 48px; right: 48px;
+    color: var(--muted); font-size: 36px; line-height: 1.5; font-weight: 500;
+  }
+
+  /* body block */
+  .body-text { color: var(--text); font-size: 30px; font-weight: 500; line-height: 1.6; }
+  .body-text .strong { color: var(--accent); font-weight: 700; }
+  .body-text code {
+    background: rgba(196,255,61,0.12); color: var(--accent);
+    padding: 2px 12px; border-radius: 6px;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 26px;
+  }
+  .body-text p + p { margin-top: 28px; }
+
+  /* page 03 — comparison table */
+  .cmp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .cmp-table thead th {
+    color: var(--muted-2);
+    font-size: 24px; font-weight: 700;
+    letter-spacing: 0.06em;
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 2px solid var(--border-accent);
+  }
+  .cmp-table thead th.col-a { color: var(--accent); }
+  .cmp-table thead th.col-b { color: var(--alt); }
+  .cmp-table tbody td {
+    padding: 18px;
+    font-size: 28px; line-height: 1.4;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmp-table tbody tr:last-child td { border-bottom: none; }
+  .cmp-table .axis { color: var(--muted); font-size: 24px; font-weight: 600; width: 22%; }
+  .cmp-table .a-val { color: var(--accent); font-weight: 700; }
+  .cmp-table .b-val { color: var(--text); }
+  .cmp-table .sub { color: var(--muted); font-size: 22px; line-height: 1.35; display: block; margin-top: 4px; font-weight: 500; }
+
+  /* page 04 — feature grid */
+  .feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .feat {
+    background: var(--bg-card);
+    border: 1px solid var(--border-accent);
+    border-radius: 18px;
+    padding: 28px 26px;
+    min-height: 260px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .feat .feat-name { color: var(--accent); font-size: 32px; font-weight: 800; }
+  .feat .feat-desc { color: var(--text); font-size: 24px; line-height: 1.5; font-weight: 500; }
+  .feat .feat-eg { color: var(--muted); font-size: 22px; line-height: 1.4; margin-top: auto; padding-top: 8px; }
+  .feat .feat-eg code { background: rgba(196,255,61,0.10); color: var(--accent); padding: 1px 8px; border-radius: 4px; font-family: monospace; font-size: 20px; }
+
+  /* page 05 — pros/cons rows. Designer: badges all neutral. */
+  .pc-grid { display: flex; flex-direction: column; gap: 16px; }
+  .pc-grid .head {
+    display: grid; grid-template-columns: 200px 1fr 1fr; gap: 14px;
+    color: var(--muted-2); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.06em; padding: 0 8px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .pc-grid .head .pos { color: var(--positive); }
+  .pc-grid .head .neg { color: var(--negative); }
+  .pc-grid .row { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 14px; align-items: stretch; }
+  .pc-grid .row .badge {
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 14px; padding: 14px 12px;
+    font-size: 24px; font-weight: 800; text-align: center; line-height: 1.2;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .pc-grid .cell {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    font-size: 22px; line-height: 1.4;
+    color: var(--text);
+  }
+  .pc-grid .cell .mark.pos { color: var(--positive); font-weight: 800; flex-shrink: 0; font-size: 26px; }
+  .pc-grid .cell .mark.neg { color: var(--negative); font-weight: 800; flex-shrink: 0; font-size: 26px; }
+
+  /* page 06 — OS code sections */
+  .os-list { display: flex; flex-direction: column; gap: 26px; }
+  .os-list .os { display: flex; flex-direction: column; gap: 14px; }
+  .os .os-name {
+    color: var(--accent); font-size: 22px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .os .code {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    font-size: 24px; line-height: 1.45;
+    color: var(--text);
+    word-break: keep-all; overflow-wrap: anywhere;
+  }
+  .os .code .prompt { color: var(--accent); margin-right: 12px; user-select: none; }
+
+  /* page 07 — numbered steps. Designer: text size up, num colour to white. */
+  .steps { display: flex; flex-direction: column; gap: 22px; }
+  .step { display: grid; grid-template-columns: 70px 1fr; gap: 22px; align-items: start; }
+  .step .num {
+    width: 70px; height: 70px; border-radius: 16px;
+    background: rgba(196,255,61,0.14);
+    color: var(--text); font-size: 32px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step .what { color: var(--text); font-size: 32px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+  .step .what .note { color: var(--muted); font-weight: 400; font-size: 22px; margin-left: 8px; }
+  .step .code {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 20px;
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    font-size: 26px; line-height: 1.4; color: var(--text);
+  }
+  .step .code .prompt { color: var(--accent); margin-right: 10px; }
+
+  /* page 08 — CTA */
+  .cta-wrap { position: absolute; top: 360px; left: 48px; right: 48px; text-align: center; }
+  .cta-wrap .label-c { color: var(--accent); font-size: 28px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 16px; }
+  .cta-wrap .h-c { font-size: 96px; line-height: 1.05; font-weight: 900; letter-spacing: -0.025em; }
+  .cta-wrap .h-c .accent { color: var(--accent); }
+  .cta-wrap .sub-c { color: var(--muted); font-size: 28px; line-height: 1.5; margin-top: 32px; font-weight: 500; }
+  .cta-wrap .ring {
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    border: 4px solid var(--accent);
+    box-shadow: 0 0 80px rgba(196,255,61,0.25), inset 0 0 60px rgba(196,255,61,0.08);
+    margin: 60px auto 44px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 30px; font-weight: 900; letter-spacing: -0.02em;
+    text-align: center; line-height: 1.05;
+  }
+  .cta-wrap .ring .small { display: block; font-size: 18px; color: var(--muted); margin-top: 6px; letter-spacing: 0.12em; font-weight: 600; }
+  .cta-wrap .pill {
+    display: inline-block;
+    background: var(--accent); color: var(--bg);
+    border-radius: 999px;
+    padding: 24px 56px;
+    font-size: 32px; font-weight: 800;
+    box-shadow: 0 0 60px rgba(196,255,61,0.25);
+  }
+  .cta-wrap .url { color: var(--muted); font-size: 22px; margin-top: 24px; font-weight: 600; letter-spacing: 0.05em; }
+
+  .card-label { color: #888; font-size: 13px; margin-top: 8px; text-align: center; }
+</style>
+</head>
+<body>
+<h1>Claude Code 처음 시작 — v7 <span style="color:#c4ff3d;font-weight:600;font-size:14px">team review applied</span></h1>
+<p class="meta">3 agent (Designer / Copywriter / Editorial Reviewer) 통합 적용 — 입말, 사실 완화, 색 시맨틱 수정</p>
+
+<div class="grid">
+
+  <!-- 01 cover -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div>
+          <span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span>
+          <span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#처음시작</span>
+        </div>
+        <div class="pageno">01 / 08</div>
+        <div class="label uppercase">START HERE</div>
+        <div class="h-title big">터미널에 AI<br><span class="accent">개발자</span>가 산다</div>
+        <div class="cover-sub">파일 읽고, 코드 고치고,<br>커밋까지 혼자 끝낸다.</div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+        <div class="dots">
+          <div class="d active"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+          <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-label">01 · cover</div>
+  </div>
+
+  <!-- 02 정의 -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#정의</span>
+        </div>
+        <div class="pageno">02 / 08</div>
+        <div class="label">한 줄 정의</div>
+        <div class="h-title">파일 읽고 명령 돌리고<br>그리고 <span class="accent">고친다</span></div>
+        <div class="content">
+          <div class="body-text">
+            <p>터미널 띄워두면 그 안에서 코드 짜는 AI다.</p>
+            <p>프로젝트를 통째로 읽고, 여러 파일을 한꺼번에 고치고, 테스트 돌려보고, 커밋까지 남긴다.</p>
+            <p>읽고 → 돌리고 → 확인하기를 혼자서 반복한다.</p>
+          </div>
+        </div>
+        <div class="callout-slot">
+          <div class="callout"><span class="accent">Opus 4.7</span> · 최대 1M 컨텍스트 · Pro·Max·Team·Enterprise</div>
+        </div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+      </div>
+    </div>
+    <div class="card-label">02 · 정의</div>
+  </div>
+
+  <!-- 03 Codex CLI 비교 -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#비교</span>
+        </div>
+        <div class="pageno">03 / 08</div>
+        <div class="label">Codex CLI와 비교</div>
+        <div class="h-title">둘 다 <span class="accent">터미널</span> AI<br>뭐가 다를까</div>
+        <div class="content">
+          <table class="cmp-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col-a">Claude Code</th>
+                <th class="col-b">Codex CLI</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="axis">제작</td>
+                <td class="a-val">Anthropic</td>
+                <td class="b-val">OpenAI</td>
+              </tr>
+              <tr>
+                <td class="axis">기본 모델</td>
+                <td class="a-val">Opus 4.7<span class="sub">추론·설계 지향</span></td>
+                <td class="b-val">GPT-5-Codex<span class="sub">속도·비용 지향</span></td>
+              </tr>
+              <tr>
+                <td class="axis">컨텍스트</td>
+                <td class="a-val">최대 1M 토큰<span class="sub">코드베이스 통째로</span></td>
+                <td class="b-val">대형 컨텍스트<span class="sub">긴 작업 OK</span></td>
+              </tr>
+              <tr>
+                <td class="axis">멀티 에이전트</td>
+                <td class="a-val">병렬 작업</td>
+                <td class="b-val">git worktree 격리</td>
+              </tr>
+              <tr>
+                <td class="axis">라이선스</td>
+                <td class="a-val">독점</td>
+                <td class="b-val">오픈소스 (Apache)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout-slot">
+          <div class="callout">Claude는 길게 생각하고, Codex는 <span class="accent">빨리 답</span>한다</div>
+        </div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+      </div>
+    </div>
+    <div class="card-label">03 · 공정 비교</div>
+  </div>
+
+  <!-- 04 4가지 특징 -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#특징</span>
+        </div>
+        <div class="pageno">04 / 08</div>
+        <div class="label">4가지 특징</div>
+        <div class="h-title">네 가지가<br><span class="accent">다르다</span></div>
+        <div class="content">
+          <div class="feat-grid">
+            <div class="feat">
+              <div class="feat-name">파일 맥락</div>
+              <div class="feat-desc">프로젝트를 통째로 본다. 관련 파일 알아서 찾는다.</div>
+              <div class="feat-eg">예: <code>"로그인 버그 고쳐"</code> → auth/ 자동 탐색</div>
+            </div>
+            <div class="feat">
+              <div class="feat-name">스스로 테스트</div>
+              <div class="feat-desc">짠 코드를 직접 돌려보고, 실패하면 다시 고친다.</div>
+              <div class="feat-eg">예: 통과까지 손 안 대도 된다</div>
+            </div>
+            <div class="feat">
+              <div class="feat-name">Git 네이티브</div>
+              <div class="feat-desc">스테이징·커밋·PR까지 한 흐름으로 처리.</div>
+              <div class="feat-eg">예: 커밋 메시지 알아서 쓴다</div>
+            </div>
+            <div class="feat">
+              <div class="feat-name">내 손에 맞춤</div>
+              <div class="feat-desc">CLAUDE.md·Skills·Hooks·MCP로 팀 규칙을 코드처럼 박는다.</div>
+              <div class="feat-eg">예: 노트북·서버·CI 어디서나 똑같이</div>
+            </div>
+          </div>
+        </div>
+        <div class="callout-slot">
+          <div class="callout">한 번 익히면 <span class="accent">매일</span> 쓰는 4가지</div>
+        </div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+      </div>
+    </div>
+    <div class="card-label">04 · 4가지 특징</div>
+  </div>
+
+  <!-- 05 설치 방법 -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#설치</span>
+        </div>
+        <div class="pageno">05 / 08</div>
+        <div class="label">3가지 길</div>
+        <div class="h-title">당신에게 맞는<br><span class="accent">설치</span></div>
+        <div class="content">
+          <div class="pc-grid">
+            <div class="head">
+              <div></div>
+              <div class="pos">장점</div>
+              <div class="neg">한계</div>
+            </div>
+            <div class="row r1">
+              <div class="badge">데스크탑<br>앱</div>
+              <div class="cell"><span class="mark pos">✓</span><span>GUI에서 diff 보기<br>여러 세션 동시 실행</span></div>
+              <div class="cell"><span class="mark neg">✗</span><span>터미널 명령<br>이어 쓰기 안 됨</span></div>
+            </div>
+            <div class="row r2">
+              <div class="badge">터미널<br>CLI</div>
+              <div class="cell"><span class="mark pos">✓</span><span>자동 업데이트<br>스크립트에 끼워 쓰기</span></div>
+              <div class="cell"><span class="mark neg">✗</span><span>터미널 안 익숙하면<br>처음엔 막막</span></div>
+            </div>
+            <div class="row r3">
+              <div class="badge">VS Code<br>확장</div>
+              <div class="cell"><span class="mark pos">✓</span><span>에디터에서 diff<br>곧장 커밋</span></div>
+              <div class="cell"><span class="mark neg">✗</span><span>IDE 밖 명령<br>실행 막힘</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="callout-slot">
+          <div class="callout">처음이면 <span class="accent">데스크탑 앱</span>, 익숙해지면 터미널로 옮기면 된다</div>
+        </div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+      </div>
+    </div>
+    <div class="card-label">05 · 설치 방법</div>
+  </div>
+
+  <!-- 06 OS별 명령 -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#설치명령</span>
+        </div>
+        <div class="pageno">06 / 08</div>
+        <div class="label">설치 명령</div>
+        <div class="h-title">한 줄로<br><span class="accent">설치</span></div>
+        <div class="content">
+          <div class="os-list">
+            <div class="os">
+              <div class="os-name">macOS · Linux · WSL</div>
+              <div class="code"><span class="prompt">$</span>curl -fsSL https://claude.ai/install.sh | bash</div>
+            </div>
+            <div class="os">
+              <div class="os-name">Windows (PowerShell)</div>
+              <div class="code"><span class="prompt">PS&gt;</span>irm https://claude.ai/install.ps1 | iex</div>
+            </div>
+            <div class="os">
+              <div class="os-name">Homebrew (자동 업데이트)</div>
+              <div class="code"><span class="prompt">$</span>brew install --cask claude-code</div>
+            </div>
+            <div class="os">
+              <div class="os-name">설치 확인</div>
+              <div class="code"><span class="prompt">$</span>claude --version</div>
+            </div>
+          </div>
+        </div>
+        <div class="callout-slot">
+          <div class="callout alt">GUI 쓰고 싶으면 <span class="accent">claude.com/download</span>에서 앱 받기</div>
+        </div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+      </div>
+    </div>
+    <div class="card-label">06 · OS별 명령</div>
+  </div>
+
+  <!-- 07 처음 실행 4단계 -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#실행</span>
+        </div>
+        <div class="pageno">07 / 08</div>
+        <div class="label">처음 실행</div>
+        <div class="h-title">첫 <span class="accent">4단계</span></div>
+        <div class="content">
+          <div class="steps">
+            <div class="step">
+              <div class="num">1</div>
+              <div>
+                <div class="what">일단 켠다 <span class="note">처음이면 로그인 안내가 뜬다</span></div>
+                <div class="code"><span class="prompt">$</span>claude</div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">2</div>
+              <div>
+                <div class="what">프로젝트부터 읽힌다 <span class="note">코드 안 보고 그냥 묻기</span></div>
+                <div class="code"><span class="prompt">&gt;</span>이 프로젝트 뭐 하는 거야?</div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">3</div>
+              <div>
+                <div class="what">작게 한 번 시켜본다 <span class="note">감 잡기</span></div>
+                <div class="code"><span class="prompt">&gt;</span>README에 설치 섹션 추가해줘</div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">4</div>
+              <div>
+                <div class="what">테스트 돌리고 커밋까지 <span class="note">한 번에 끝낸다</span></div>
+                <div class="code"><span class="prompt">&gt;</span>변경사항 의미 있는 메시지로 커밋</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+      </div>
+    </div>
+    <div class="card-label">07 · 4단계 실행</div>
+  </div>
+
+  <!-- 08 CTA -->
+  <div>
+    <div class="card">
+      <div class="card-inner">
+        <div class="strip">
+          <div class="avatar">U</div><span class="handle">@uhuru_nomadlife</span>
+          <span class="sep">|</span><span class="series">클로드 코드 처음 시작</span>
+          <span class="hashtag">#시작</span>
+        </div>
+        <div class="pageno">08 / 08</div>
+        <div class="cta-wrap">
+          <div class="label-c">START NOW</div>
+          <div class="h-c">5분이면<br><span class="accent">끝</span>난다</div>
+          <div class="sub-c">명령어 한 줄 붙이면 설치 끝.<br>터미널에 AI 개발자 한 명 들인다.</div>
+          <div class="ring">CLAUDE<br>CODE<span class="small">START</span></div>
+          <div class="pill">지금 설치하기 →</div>
+          <div class="url">claude.com/download</div>
+        </div>
+        <div class="footer-handle">@uhuru_nomadlife</div>
+      </div>
+    </div>
+    <div class="card-label">08 · CTA</div>
+  </div>
+
+</div>
+</body>
+</html>
