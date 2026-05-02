@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { CardStatusSchema } from "./card-status";
+import { ClaimLedgerSchema } from "./claim-ledger";
+import { NarrativeArcSchema } from "./narrative-arc";
 import { PageSchema } from "./page";
 import { SourcePolicySchema } from "./source-policy";
 
@@ -56,6 +58,10 @@ export const CardSchema = z
     sourceText: z.string().optional(),
     sourcePolicy: SourcePolicySchema,
     coreMessage: z.string().min(1),
+    thesis: z.string().optional(),
+    audienceQuestion: z.string().optional(),
+    narrativeArc: NarrativeArcSchema.optional(),
+    claimLedger: ClaimLedgerSchema.optional(),
     pages: z.array(PageSchema).min(3),
     status: CardStatusSchema,
     failedStage: PipelineStage.optional(),
@@ -110,6 +116,63 @@ export const CardSchema = z
         path: ["pages"],
         message: "must use at least 2 distinct body layouts",
       });
+    }
+
+    if (card.pipelineVersion === "v2-editorial") {
+      if (!card.thesis) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["thesis"],
+          message: "v2-editorial requires thesis",
+        });
+      }
+      if (!card.audienceQuestion) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["audienceQuestion"],
+          message: "v2-editorial requires audienceQuestion",
+        });
+      }
+      if (!card.narrativeArc) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["narrativeArc"],
+          message: "v2-editorial requires narrativeArc",
+        });
+      }
+      if (!card.claimLedger) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["claimLedger"],
+          message: "v2-editorial requires claimLedger",
+        });
+      }
+
+      for (const [i, p] of pages.entries()) {
+        if (!p.copyIntent) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["pages", i, "copyIntent"],
+            message: "v2-editorial requires copyIntent on every page",
+          });
+        }
+      }
+
+      const ledgerIds = new Set(
+        card.claimLedger?.claims.map((c) => c.id) ?? []
+      );
+      for (const [pi, p] of pages.entries()) {
+        const claims = p.claims ?? [];
+        for (const [ci, claimId] of claims.entries()) {
+          if (!ledgerIds.has(claimId)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["pages", pi, "claims", ci],
+              message: `Page references unknown claim id: ${claimId}`,
+            });
+          }
+        }
+      }
     }
   });
 

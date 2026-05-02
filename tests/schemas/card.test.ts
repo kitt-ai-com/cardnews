@@ -115,14 +115,132 @@ describe("Card", () => {
     expect(out.pipelineVersion).toBe("v1-mocked");
   });
 
-  it("accepts pipelineVersion = 'v2-editorial'", () => {
-    const ok = { ...baseCard, pipelineVersion: "v2-editorial" };
-    const out = CardSchema.parse(ok);
-    expect(out.pipelineVersion).toBe("v2-editorial");
+  it("accepts pipelineVersion = 'v2-editorial' enum value (refine handled in v2 suite)", () => {
+    // pipelineVersion enum itself accepts 'v2-editorial'; the conditional
+    // refine that requires thesis/audienceQuestion/narrativeArc/claimLedger
+    // is exercised in the "Card v2-editorial conditional refine" suite below.
+    expect(() =>
+      CardSchema.parse({ ...baseCard, pipelineVersion: "v2-editorial" })
+    ).toThrow(/v2-editorial requires/i);
   });
 
   it("rejects unknown pipelineVersion", () => {
     const bad = { ...baseCard, pipelineVersion: "v3-magic" };
     expect(() => CardSchema.parse(bad)).toThrow();
+  });
+});
+
+describe("Card v2-editorial conditional refine", () => {
+  const validClaim = {
+    id: "C1",
+    text: "claim text",
+    type: "fact" as const,
+    confidence: "high" as const,
+  };
+  const validClaim2 = {
+    id: "C2",
+    text: "claim text 2",
+    type: "interpretation" as const,
+    confidence: "medium" as const,
+  };
+  const validArc = {
+    hook: "h",
+    context: "c",
+    mechanism: "m",
+    evidence: "e",
+    implication: "i",
+    action: "a",
+  };
+  const validLedger = {
+    claims: [validClaim, validClaim2],
+    sourceDigest: { audienceQuestion: "Q?" },
+  };
+
+  function v2Page(
+    index: number,
+    role: "cover" | "body" | "cta",
+    layout: "cover" | "cta" | "P1" | "P2" | "P3" | "P4" | "P5" | "P6" | "P7",
+    copyIntent: string,
+    claims: string[] = []
+  ) {
+    return {
+      index,
+      role,
+      layout,
+      copyIntent,
+      message: `m${index}`,
+      mappingNote: `n${index}`,
+      claims,
+      copy: { title: `T${index}` },
+      manualEdit: false,
+    };
+  }
+
+  const v2Card = {
+    id: "2026-05-02-v2-test",
+    series: "claude",
+    preset: "c1-dark-lime",
+    pipelineVersion: "v2-editorial",
+    topic: "test",
+    sourcePolicy: { trustLevel: "primary", factCheckMode: "strict" },
+    coreMessage: "core",
+    thesis: "thesis sentence",
+    audienceQuestion: "Q?",
+    narrativeArc: validArc,
+    claimLedger: validLedger,
+    pages: [
+      v2Page(1, "cover", "cover", "hook", ["C1"]),
+      v2Page(2, "body", "P1", "evidence", ["C1"]),
+      v2Page(3, "body", "P2", "mechanism", ["C2"]),
+      v2Page(4, "cta", "cta", "cta", []),
+    ],
+    status: "draft.outline-ready",
+    attempts: [],
+    createdAt: "2026-05-02T00:00:00.000Z",
+    updatedAt: "2026-05-02T00:00:00.000Z",
+  };
+
+  it("accepts a complete v2-editorial card", () => {
+    expect(() => CardSchema.parse(v2Card)).not.toThrow();
+  });
+
+  it("v1 cards without v2 fields still parse (regression)", () => {
+    expect(() => CardSchema.parse(baseCard)).not.toThrow();
+  });
+
+  it("rejects v2 card without thesis", () => {
+    const bad = structuredClone(v2Card);
+    delete (bad as Record<string, unknown>).thesis;
+    expect(() => CardSchema.parse(bad)).toThrow(/thesis/i);
+  });
+
+  it("rejects v2 card without audienceQuestion", () => {
+    const bad = structuredClone(v2Card);
+    delete (bad as Record<string, unknown>).audienceQuestion;
+    expect(() => CardSchema.parse(bad)).toThrow(/audienceQuestion/i);
+  });
+
+  it("rejects v2 card without narrativeArc", () => {
+    const bad = structuredClone(v2Card);
+    delete (bad as Record<string, unknown>).narrativeArc;
+    expect(() => CardSchema.parse(bad)).toThrow(/narrativeArc/i);
+  });
+
+  it("rejects v2 card without claimLedger", () => {
+    const bad = structuredClone(v2Card);
+    delete (bad as Record<string, unknown>).claimLedger;
+    expect(() => CardSchema.parse(bad)).toThrow(/claimLedger/i);
+  });
+
+  it("rejects v2 card with page.claims referencing missing ledger id", () => {
+    const bad = structuredClone(v2Card);
+    bad.pages[1].claims = ["C99"];
+    expect(() => CardSchema.parse(bad)).toThrow(/unknown claim id: C99/i);
+  });
+
+  it("rejects v2 card with a page missing copyIntent", () => {
+    const bad = structuredClone(v2Card);
+    delete (bad.pages[2] as Record<string, unknown>).copyIntent;
+    expect(() => CardSchema.parse(bad)).toThrow(/copyIntent/i);
   });
 });
