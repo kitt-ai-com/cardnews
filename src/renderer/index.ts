@@ -24,3 +24,12 @@ export {
   P7,
   type LayoutProps,
 } from "./layouts";
+export {
+  I1ClaimEvidence,
+  I2BeforeAfter,
+  I3Mechanism,
+  I4MythReality,
+  I5DecisionGuide,
+  I6CaseBreakdown,
+  type InfoPatternProps,
+} from "./info-patterns";
