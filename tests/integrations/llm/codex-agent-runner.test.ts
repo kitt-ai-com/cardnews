@@ -136,4 +136,33 @@ describe("codex-agent-runner", () => {
     });
     await expect(runner.run({ prompt: "x" })).rejects.toThrow();
   });
+
+  it("writes token log entry with backend: 'codex' and null token counts", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(import.meta.dirname, "tmp-codex-tokens-"));
+    try {
+      const callCodex = vi.fn().mockResolvedValue({
+        exitCode: 0,
+        stderr: "",
+        lastMessage: '{"foo":"ok"}',
+      });
+      const runner = makeCodexAgentRunner({
+        contract: mockContract,
+        name: "codey",
+        callCodex,
+        tokenLogPath: tmpDir,
+      });
+      await runner.run({ prompt: "x" });
+
+      const log = await fs.readFile(path.join(tmpDir, ".tokens.jsonl"), "utf8");
+      const lastLine = log.trim().split("\n").pop()!;
+      const parsed = JSON.parse(lastLine);
+      expect(parsed.backend).toBe("codex");
+      expect(parsed.agent).toBe("codey");
+      expect(parsed.input_tokens).toBeNull();
+      expect(parsed.output_tokens).toBeNull();
+      expect(parsed.model).toMatch(/^codex:/);
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
 });
