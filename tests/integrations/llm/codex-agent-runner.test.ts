@@ -78,4 +78,62 @@ describe("codex-agent-runner", () => {
     expect(runner.name).toBe("ana");
     expect(runner.contract).toBe(mockContract);
   });
+
+  it("throws when codex exits non-zero, including stderr tail", async () => {
+    const callCodex = vi.fn().mockResolvedValue({
+      exitCode: 1,
+      stderr: "auth required: please run codex login",
+      lastMessage: "",
+    });
+    const runner = makeCodexAgentRunner({
+      contract: mockContract,
+      name: "t",
+      callCodex,
+    });
+    await expect(runner.run({ prompt: "x" })).rejects.toThrow(
+      /Codex CLI failed.*auth required/
+    );
+  });
+
+  it("throws on empty response", async () => {
+    const callCodex = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      stderr: "",
+      lastMessage: "",
+    });
+    const runner = makeCodexAgentRunner({
+      contract: mockContract,
+      name: "t",
+      callCodex,
+    });
+    await expect(runner.run({ prompt: "x" })).rejects.toThrow(/empty response/);
+  });
+
+  it("throws on JSON parse failure", async () => {
+    const callCodex = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      stderr: "",
+      lastMessage: "this is not json",
+    });
+    const runner = makeCodexAgentRunner({
+      contract: mockContract,
+      name: "t",
+      callCodex,
+    });
+    await expect(runner.run({ prompt: "x" })).rejects.toThrow(/Failed to parse JSON/);
+  });
+
+  it("throws on zod validation failure", async () => {
+    const callCodex = vi.fn().mockResolvedValue({
+      exitCode: 0,
+      stderr: "",
+      lastMessage: '{"wrong":"schema"}',
+    });
+    const runner = makeCodexAgentRunner({
+      contract: mockContract,
+      name: "t",
+      callCodex,
+    });
+    await expect(runner.run({ prompt: "x" })).rejects.toThrow();
+  });
 });
