@@ -276,23 +276,65 @@ describe("claude-agent-runner", () => {
     await fs.rm(tmpTokenDir, { recursive: true });
   });
 
-  it("missing ANTHROPIC_API_KEY throws at construction time", () => {
-    // Temporarily remove env var
-    const originalKey = process.env.ANTHROPIC_API_KEY;
+  it("does not throw at construction when ANTHROPIC_API_KEY is missing", () => {
+    const original = process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
-
     try {
-      expect(() => {
+      expect(() =>
         makeClaudeAgentRunner({
           contract: mockContract,
           name: "test-agent",
-          // no client provided
-        });
-      }).toThrow(/ANTHROPIC_API_KEY/);
+        })
+      ).not.toThrow();
     } finally {
-      if (originalKey) {
-        process.env.ANTHROPIC_API_KEY = originalKey;
-      }
+      if (original !== undefined) process.env.ANTHROPIC_API_KEY = original;
+    }
+  });
+
+  it("throws on first .run() when ANTHROPIC_API_KEY is missing", async () => {
+    const original = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      const runner = makeClaudeAgentRunner({
+        contract: mockContract,
+        name: "test-agent",
+      });
+      await expect(runner.run({ prompt: "x" })).rejects.toThrow(
+        /ANTHROPIC_API_KEY/
+      );
+    } finally {
+      if (original !== undefined) process.env.ANTHROPIC_API_KEY = original;
+    }
+  });
+
+  it("token log entries include backend: 'claude'", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(import.meta.dirname, "tmp-tokens-"));
+    try {
+      const mockClient = new Anthropic() as any;
+      (mockClient.messages.create as MockedFunction<any>).mockResolvedValueOnce({
+        content: [{ type: "text", text: '{"foo":"bar"}' }],
+        usage: {
+          input_tokens: 7,
+          output_tokens: 3,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+      });
+      const runner = makeClaudeAgentRunner({
+        contract: mockContract,
+        name: "claudey",
+        client: mockClient,
+        tokenLogPath: tmpDir,
+      });
+      await runner.run({ prompt: "x" });
+
+      const log = await fs.readFile(path.join(tmpDir, ".tokens.jsonl"), "utf8");
+      const lastLine = log.trim().split("\n").pop()!;
+      const parsed = JSON.parse(lastLine);
+      expect(parsed.backend).toBe("claude");
+      expect(parsed.agent).toBe("claudey");
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
     }
   });
 });

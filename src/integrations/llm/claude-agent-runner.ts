@@ -39,9 +39,11 @@ export function makeClaudeAgentRunner<I, O>(
     repoRoot,
   } = config;
 
-  // Ensure we have a client or can create one
-  let client = config.client;
-  if (!client) {
+  // Resolve client lazily: defer ANTHROPIC_API_KEY validation until first .run()
+  // so dual-agent-runner can fall back to Codex when the key is absent or empty.
+  let client: Anthropic | undefined = config.client;
+  const ensureClient = (): Anthropic => {
+    if (client) return client;
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       throw new Error(
@@ -49,7 +51,8 @@ export function makeClaudeAgentRunner<I, O>(
       );
     }
     client = new Anthropic({ apiKey });
-  }
+    return client;
+  };
 
   const customLoadPrompt = config.loadSystemPrompt
     ? config.loadSystemPrompt
@@ -88,7 +91,7 @@ export function makeClaudeAgentRunner<I, O>(
       // Retry loop
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          const response = await client.messages.create({
+          const response = await ensureClient().messages.create({
             model,
             max_tokens: maxTokens,
             system: systemBlocks as any,
@@ -129,6 +132,7 @@ export function makeClaudeAgentRunner<I, O>(
                 output_tokens: response.usage.output_tokens,
                 cache_read: response.usage.cache_read_input_tokens || 0,
                 cache_create: response.usage.cache_creation_input_tokens || 0,
+                backend: "claude",
               },
               tokenLogPath
             );
@@ -213,13 +217,11 @@ async function logTokenUsage(
     output_tokens: number;
     cache_read: number;
     cache_create: number;
+    backend: "claude" | "codex";
   },
   tokenLogPath?: string
 ): Promise<void> {
-  if (!tokenLogPath) {
-    return; // No logging if path not provided
-  }
-
+  if (!tokenLogPath) return;
   const line = JSON.stringify({
     agent: record.agent,
     ts: new Date().toISOString(),
@@ -229,14 +231,13 @@ async function logTokenUsage(
     output_tokens: record.output_tokens,
     cache_read: record.cache_read,
     cache_create: record.cache_create,
+    backend: record.backend,
   });
-
   try {
     const tokensFile = path.join(tokenLogPath, ".tokens.jsonl");
     await fs.mkdir(tokenLogPath, { recursive: true });
     await fs.appendFile(tokensFile, line + "\n");
   } catch (err) {
-    // Silently fail token logging (don't block the agent)
     console.error(
       `Failed to log token usage: ${err instanceof Error ? err.message : String(err)}`
     );
