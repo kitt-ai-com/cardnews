@@ -31,6 +31,11 @@ import {
   FilePresetRegistry,
 } from "../src/core/registry";
 import { makeClaudeAgentRunner } from "../src/integrations/llm/claude-agent-runner";
+import { makeCodexAgentRunner } from "../src/integrations/llm/codex-agent-runner";
+import {
+  makeDualAgentRunner,
+  type FallbackLatch,
+} from "../src/integrations/llm/dual-agent-runner";
 import {
   loadBaseline,
   compareToBaseline,
@@ -251,56 +256,104 @@ Then re-run.`);
   const cardDir = path.join(cardsDir, cardId);
   await fs.mkdir(cardDir, { recursive: true });
 
-  // ---- Build real agent runners ----
+  // ---- Build real agent runners (Claude primary, Codex fallback) ----
   const tokenLogPath = cardDir; // .tokens.jsonl appended here
-  const analyst = makeClaudeAgentRunner<AnalystInput, AnalystOutput>({
-    contract: {
-      inputSchema: AnalystInputSchema,
-      outputSchema: AnalystOutputSchema,
-      systemPromptPath: "data/agents/analyst.md",
-    },
-    name: "analyst",
-    tokenLogPath,
-    repoRoot: projectRoot,
+  const fallbackLatch: FallbackLatch = { tripped: false };
+
+  const analyst = makeDualAgentRunner<AnalystInput, AnalystOutput>({
+    claude: makeClaudeAgentRunner<AnalystInput, AnalystOutput>({
+      contract: {
+        inputSchema: AnalystInputSchema,
+        outputSchema: AnalystOutputSchema,
+        systemPromptPath: "data/agents/analyst.md",
+      },
+      name: "analyst",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    codex: makeCodexAgentRunner<AnalystInput, AnalystOutput>({
+      contract: {
+        inputSchema: AnalystInputSchema,
+        outputSchema: AnalystOutputSchema,
+        systemPromptPath: "data/agents/analyst.md",
+      },
+      name: "analyst",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    latch: fallbackLatch,
   });
-  const copywriter = makeClaudeAgentRunner<
-    CopywriterPageInput,
-    CopywriterPageOutput
-  >({
-    contract: {
-      inputSchema: CopywriterPageInputSchema,
-      outputSchema: CopywriterPageOutputSchema,
-      systemPromptPath: "data/agents/copywriter.md",
-    },
-    name: "copywriter",
-    tokenLogPath,
-    repoRoot: projectRoot,
+
+  const copywriter = makeDualAgentRunner<CopywriterPageInput, CopywriterPageOutput>({
+    claude: makeClaudeAgentRunner<CopywriterPageInput, CopywriterPageOutput>({
+      contract: {
+        inputSchema: CopywriterPageInputSchema,
+        outputSchema: CopywriterPageOutputSchema,
+        systemPromptPath: "data/agents/copywriter.md",
+      },
+      name: "copywriter",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    codex: makeCodexAgentRunner<CopywriterPageInput, CopywriterPageOutput>({
+      contract: {
+        inputSchema: CopywriterPageInputSchema,
+        outputSchema: CopywriterPageOutputSchema,
+        systemPromptPath: "data/agents/copywriter.md",
+      },
+      name: "copywriter",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    latch: fallbackLatch,
   });
-  const imageDirector = makeClaudeAgentRunner<
-    ImageDirectorInput,
-    ImageDirectorOutput
-  >({
-    contract: {
-      inputSchema: ImageDirectorInputSchema,
-      outputSchema: ImageDirectorOutputSchema,
-      systemPromptPath: "data/agents/image-director.md",
-    },
-    name: "image-director",
-    tokenLogPath,
-    repoRoot: projectRoot,
+
+  const imageDirector = makeDualAgentRunner<ImageDirectorInput, ImageDirectorOutput>({
+    claude: makeClaudeAgentRunner<ImageDirectorInput, ImageDirectorOutput>({
+      contract: {
+        inputSchema: ImageDirectorInputSchema,
+        outputSchema: ImageDirectorOutputSchema,
+        systemPromptPath: "data/agents/image-director.md",
+      },
+      name: "image-director",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    codex: makeCodexAgentRunner<ImageDirectorInput, ImageDirectorOutput>({
+      contract: {
+        inputSchema: ImageDirectorInputSchema,
+        outputSchema: ImageDirectorOutputSchema,
+        systemPromptPath: "data/agents/image-director.md",
+      },
+      name: "image-director",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    latch: fallbackLatch,
   });
-  const factChecker = makeClaudeAgentRunner<
-    FactCheckerInput,
-    FactCheckerOutput
-  >({
-    contract: {
-      inputSchema: FactCheckerInputSchema,
-      outputSchema: FactCheckerOutputSchema,
-      systemPromptPath: "data/agents/fact-checker.md",
-    },
-    name: "fact-checker",
-    tokenLogPath,
-    repoRoot: projectRoot,
+
+  const factChecker = makeDualAgentRunner<FactCheckerInput, FactCheckerOutput>({
+    claude: makeClaudeAgentRunner<FactCheckerInput, FactCheckerOutput>({
+      contract: {
+        inputSchema: FactCheckerInputSchema,
+        outputSchema: FactCheckerOutputSchema,
+        systemPromptPath: "data/agents/fact-checker.md",
+      },
+      name: "fact-checker",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    codex: makeCodexAgentRunner<FactCheckerInput, FactCheckerOutput>({
+      contract: {
+        inputSchema: FactCheckerInputSchema,
+        outputSchema: FactCheckerOutputSchema,
+        systemPromptPath: "data/agents/fact-checker.md",
+      },
+      name: "fact-checker",
+      tokenLogPath,
+      repoRoot: projectRoot,
+    }),
+    latch: fallbackLatch,
   });
 
   // ---- Build pipeline ----
