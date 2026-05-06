@@ -192,15 +192,26 @@ async function main(): Promise<void> {
   }
 
   // ---- Pre-flight checks ----
+  // ANTHROPIC_API_KEY missing is now OK — the dual runner falls back to Codex
+  // (the latch trips on the first claude.run() call). We only block if Codex
+  // is also unavailable, since then there is no working backend.
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error(`${TAG} ANTHROPIC_API_KEY not set.
+    const codexBinForCheck = process.env.CODEX_BIN ?? "codex";
+    const codexOk = await checkCodexAvailable(codexBinForCheck);
+    if (!codexOk) {
+      console.error(`${TAG} ANTHROPIC_API_KEY is not set and codex CLI is unavailable.
 
-This script runs real Claude API calls. Set the env var:
+Either:
   export ANTHROPIC_API_KEY=sk-ant-...
+or install/login codex (brew install codex && codex login)
 
 Then re-run.`);
-    process.exit(1);
-    return;
+      process.exit(1);
+      return;
+    }
+    console.warn(
+      `${TAG} ANTHROPIC_API_KEY not set — pipeline will fall back to Codex on first call.`
+    );
   }
 
   const codexBin = process.env.CODEX_BIN ?? "codex";
