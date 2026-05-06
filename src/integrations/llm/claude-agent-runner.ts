@@ -4,6 +4,7 @@ import type { ZodType } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { loadSystemPrompt, clearSystemPromptCache } from "./system-prompt-loader";
+import { stripMarkdownFences } from "./util";
 
 export interface ClaudeAgentRunnerConfig<I, O> {
   contract: AgentContract<I, O>;
@@ -186,16 +187,6 @@ function getErrorStatusCode(err: unknown): number | null {
   return null;
 }
 
-/**
- * Strip markdown code fences from response text.
- */
-function stripMarkdownFences(text: string): string {
-  // Remove ```json ... ``` or ``` ... ```
-  let result = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-  // Also try plain ```
-  result = result.replace(/^```\n?/, "").replace(/\n?```$/, "");
-  return result.trim();
-}
 
 /**
  * Check if an error is a network error (Node.js ErrnoException).
