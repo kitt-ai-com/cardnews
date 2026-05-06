@@ -109,6 +109,18 @@ describe("dual-agent-runner", () => {
     expect(codexB.run).toHaveBeenCalledOnce();
   });
 
+  it("flips latch when claude throws because ANTHROPIC_API_KEY is missing", async () => {
+    const claude = makeFakeRunner("claude", async () => {
+      throw new Error("ANTHROPIC_API_KEY env var not set. Run `export ANTHROPIC_API_KEY=...` ...");
+    });
+    const codex = makeFakeRunner("codex", async () => ({ r: "ok" }));
+    const latch: FallbackLatch = { tripped: false };
+    const dual = makeDualAgentRunner({ claude, codex, latch });
+    const result = await dual.run({ p: "x" });
+    expect(result).toEqual({ r: "ok" });
+    expect(latch.tripped).toBe(true);
+  });
+
   it("exposes name and contract from the claude runner", () => {
     const claude = makeFakeRunner("clauder", async () => ({ r: "z" }));
     const codex = makeFakeRunner("codexer", async () => ({ r: "z" }));

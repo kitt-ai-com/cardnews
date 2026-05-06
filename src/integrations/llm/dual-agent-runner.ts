@@ -54,6 +54,7 @@ function isCreditExhausted(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
   return (
     msg.includes("credit_balance_too_low") ||
-    msg.includes("credit balance is too low")
+    msg.includes("credit balance is too low") ||
+    msg.includes("anthropic_api_key env var not set")
   );
 }
