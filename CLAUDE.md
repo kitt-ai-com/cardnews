@@ -1,6 +1,8 @@
 # Cardnews Automation — Claude Code Project Context
 
 > 이 파일은 Claude Code가 세션 시작 시 자동 로드합니다. 카드뉴스 작업 전 반드시 이 흐름을 따르세요.
+>
+> **사용자가 "설치해줘 / 셋업해줘"라고 하거나 이 리포 URL을 처음 줬다면**, 카드뉴스 작업 전에 **`INSTALL.md` 플레이북**부터 따라가세요 (OS 감지 + Bun/Codex/의존성 자동 설치).
 
 ## 이 프로젝트가 하는 일
 

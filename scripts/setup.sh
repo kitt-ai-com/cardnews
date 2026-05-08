@@ -24,7 +24,7 @@ else
   ok "설치 완료 ($(bun --version))"
 fi
 
-bold "2) Codex CLI"
+bold "2) Codex CLI (OpenAI codex — 이미지 생성에 필수)"
 if command -v codex >/dev/null 2>&1; then
   ok "이미 설치됨 ($(command -v codex))"
 else
@@ -32,14 +32,24 @@ else
     warn "Codex 미설치 — brew install --cask codex 실행"
     brew install --cask codex
     ok "설치 완료"
+  elif command -v npm >/dev/null 2>&1; then
+    warn "Homebrew 없음 → npm으로 설치 시도: npm install -g @openai/codex"
+    npm install -g @openai/codex
+    ok "설치 완료 (npm 글로벌)"
   else
-    miss "Homebrew 없음 — Codex CLI 자동 설치 불가"
+    miss "Codex CLI 자동 설치 불가 — Homebrew도 npm도 없음"
     echo
-    echo "  ① Homebrew 설치 (아래 한 줄 그대로 터미널에 붙여넣기):"
-    echo "     /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+    echo "  Codex CLI 설치 옵션 (둘 중 하나):"
     echo
-    echo "  ② 설치 후 안내되는 'Next steps' 두세 줄도 그대로 실행 (PATH 등록)."
-    echo "  ③ 그 다음 이 스크립트를 다시 실행:  bash scripts/setup.sh"
+    echo "  [추천] Homebrew로 설치 (macOS):"
+    echo "    ① /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+    echo "    ② 설치 후 안내되는 'Next steps' 두세 줄도 그대로 실행 (PATH 등록)"
+    echo "    ③ brew install --cask codex"
+    echo
+    echo "  [대안] npm으로 설치 (Node.js 18+ 필요):"
+    echo "    npm install -g @openai/codex"
+    echo
+    echo "  설치 후 이 스크립트 다시 실행:  bash scripts/setup.sh"
     exit 1
   fi
 fi
@@ -74,6 +84,10 @@ else
   warn "Codex 로그인 필요 — 다음을 직접 실행:"
   echo "    codex login   # 브라우저에서 ChatGPT OAuth 진행"
 fi
+echo
+echo "  ⚠️  ChatGPT Plus/Pro 유료 구독 필요."
+echo "     무료 계정은 이미지 생성(gpt-image-2) 권한이 없어 /codex-image가 실패합니다."
+echo "     구독: https://chat.openai.com/#pricing"
 
 echo
 bold "셋업 완료 — 이제 뭐 하면 되나"
