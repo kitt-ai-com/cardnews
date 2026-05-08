@@ -23,7 +23,7 @@ CARDNEWS_DIR=~/projects/cardnews bash <(curl -fsSL https://raw.githubusercontent
 - ✅ Bun 설치 (없으면 공식 installer 자동 실행)
 - ✅ Codex CLI 설치 (`brew install codex` — Homebrew 있을 때)
 - ✅ Bun 의존성 (`bun install`)
-- ✅ codex-image 스킬 프로젝트-로컬 클론 (`.claude/skills/codex-image/`)
+- ✅ codex-image 스킬은 리포에 동봉 (`.claude/skills/codex-image/`)
 - ✅ Codex 로그인 상태 검사
 
 ## 수동 필요 (PC당 1회)

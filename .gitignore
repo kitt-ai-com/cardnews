@@ -8,4 +8,5 @@ coverage/
 !.env.example
 data/series/*/cards/*/state.lock
 data/series/*/cards/*/state.json.tmp.*
-.claude/skills/
+.claude/skills/*
+!.claude/skills/codex-image/

@@ -55,16 +55,11 @@ fi
 bold "4) Bun 의존성"
 bun install
 
-bold "5) codex-image 스킬 (프로젝트-로컬)"
-SKILL_DIR="$ROOT/.claude/skills/codex-image"
-if [ -d "$SKILL_DIR/.git" ]; then
-  ok "이미 설치됨 — pull로 갱신"
-  git -C "$SKILL_DIR" pull --ff-only
+bold "5) codex-image 스킬"
+if [ -f "$ROOT/.claude/skills/codex-image/SKILL.md" ]; then
+  ok "리포에 동봉됨 → .claude/skills/codex-image"
 else
-  rm -rf "$SKILL_DIR"
-  mkdir -p "$ROOT/.claude/skills"
-  git clone --depth 1 https://github.com/wjb127/codex-image.git "$SKILL_DIR"
-  ok "설치 완료 → .claude/skills/codex-image"
+  miss ".claude/skills/codex-image/SKILL.md 없음 — 리포가 손상됐을 수 있음"
 fi
 
 bold "6) Codex OAuth 로그인 상태"
