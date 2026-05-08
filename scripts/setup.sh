@@ -29,15 +29,17 @@ if command -v codex >/dev/null 2>&1; then
   ok "이미 설치됨 ($(command -v codex))"
 else
   if command -v brew >/dev/null 2>&1; then
-    warn "Codex 미설치 — brew install codex 실행"
-    brew install codex
+    warn "Codex 미설치 — brew install --cask codex 실행"
+    brew install --cask codex
     ok "설치 완료"
   else
     miss "Homebrew 없음 — Codex CLI 자동 설치 불가"
     echo
-    echo "  먼저 Homebrew를 설치하세요:"
-    echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
-    echo "  그 다음 이 스크립트를 다시 실행."
+    echo "  ① Homebrew 설치 (아래 한 줄 그대로 터미널에 붙여넣기):"
+    echo "     /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+    echo
+    echo "  ② 설치 후 안내되는 'Next steps' 두세 줄도 그대로 실행 (PATH 등록)."
+    echo "  ③ 그 다음 이 스크립트를 다시 실행:  bash scripts/setup.sh"
     exit 1
   fi
 fi
@@ -46,9 +48,12 @@ bold "3) Claude Code"
 if command -v claude >/dev/null 2>&1; then
   ok "이미 설치됨"
 else
-  miss "Claude Code 미설치 — GUI 앱이라 자동 설치 불가"
+  miss "Claude Code CLI(\`claude\`)가 PATH에 없음"
   echo
-  echo "  https://claude.com/claude-code 에서 다운로드 후 다시 실행."
+  echo "  ① 앱이 아직 없다면: https://claude.com/claude-code 에서 다운로드 후 설치."
+  echo "  ② 앱은 깔았는데 \`claude\` 명령이 안 보이면, 앱을 한 번 실행해서"
+  echo "     초기 셋업을 마치세요. CLI symlink가 그때 만들어집니다."
+  echo "  ③ 그 다음 이 스크립트를 다시 실행:  bash scripts/setup.sh"
   exit 1
 fi
 
@@ -71,7 +76,19 @@ else
 fi
 
 echo
-bold "셋업 완료"
-echo "  bun run typecheck"
-echo "  bun run test"
-echo "  Claude Code 열고 /codex-image <prompt> 동작 확인"
+bold "셋업 완료 — 이제 뭐 하면 되나"
+echo
+echo "  1) 이 폴더($ROOT)에서 Claude Code 실행"
+echo "     → 세션이 열리면 CLAUDE.md가 자동 로드되며 작업 룰을 읽어옵니다."
+echo
+echo "  2) 채팅에 한국어로 던지면 끝:"
+echo "     예) \"카드뉴스 만들자, 주제는 'Codex CLI 처음 시작'\""
+echo "     → Claude Code가 Analyst→Copywriter→DesignReviewer→ImageDirector"
+echo "       순으로 에이전트를 디스패치하고 이미지는 /codex-image로 자동 호출합니다."
+echo
+echo "  3) 산출물은 data/series/claude/cards/<날짜-슬러그>/ 아래에 생성됩니다."
+echo
+echo "  참고:"
+echo "  - \`bun run m2:first-v2 \"<주제>\"\` 처럼 Claude Code 밖에서 헤드리스로 돌릴 때만"
+echo "    ANTHROPIC_API_KEY가 필요합니다. 채팅에서 만들 때는 불필요."
+echo "  - 동작 확인용:  bun run typecheck   |   bun run test"

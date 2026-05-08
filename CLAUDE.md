@@ -14,14 +14,13 @@
 
 ## 반드시 읽고 시작 (시리즈 작업 전)
 
-작업 종류와 무관하게 다음 4개 파일을 먼저 read 하세요:
+작업 종류와 무관하게 다음 2개 파일을 먼저 read 하세요:
 
 1. **`data/series/<series>/design-guide.md`** — 시리즈 디자인 시스템 (현재 rev 8)
 2. **`data/series/<series>/references/editorial-style-references.md`** — 짐코딩·DEEPDIVE 레퍼런스 패턴
-3. **`docs/superpowers/specs/2026-05-02-claim-ledger-revision.md`** — v2 editorial pipeline 정의
-4. **`docs/superpowers/specs/2026-05-02-design-agent-addendum.md`** — Designer 에이전트 + Team Orchestrator 패턴
 
-(이 4개를 안 읽으면 시리즈 voice가 일관되지 않고 같은 시행착오 반복.)
+(이 2개를 안 읽으면 시리즈 voice가 일관되지 않고 같은 시행착오 반복.)
+v2 editorial pipeline·Designer/TeamOrchestrator 패턴의 핵심은 아래 "Team Orchestrator 패턴"과 "핵심 룰" 섹션에 그대로 정리돼 있음.
 
 ---
 
