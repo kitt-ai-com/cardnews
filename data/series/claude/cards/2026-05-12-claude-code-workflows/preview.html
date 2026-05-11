@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code 활용법 15가지 — 카드뉴스</title>
+<style>
+  :root {
+    --bg: #06101d;
+    --bg-2: #020711;
+    --panel: rgba(255,255,255,0.055);
+    --panel-2: rgba(37,130,255,0.09);
+    --text: #f7fbff;
+    --muted: rgba(247,251,255,0.62);
+    --muted-2: rgba(247,251,255,0.34);
+    --line: rgba(247,251,255,0.11);
+    --accent: #4da3ff;
+    --accent-2: #7de2ff;
+    --good: #5ee6a8;
+    --warn: #ffcc66;
+    --safe-x: 58px;
+    --y-strip: 60px;
+    --y-page: 130px;
+    --y-label: 214px;
+    --y-title: 276px;
+    --y-content: 560px;
+    --y-callout: 1086px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html,
+  body {
+    background: #121820;
+    color: var(--text);
+    font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  h1 {
+    width: 1112px;
+    max-width: 100%;
+    font-size: 28px;
+    font-weight: 850;
+    letter-spacing: 0;
+  }
+
+  .meta {
+    width: 1112px;
+    max-width: 100%;
+    margin-top: -18px;
+    color: rgba(255,255,255,0.56);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 540px);
+    gap: 32px;
+  }
+
+  .card-wrap { width: 540px; }
+
+  .card {
+    width: 540px;
+    height: 675px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.36);
+  }
+
+  .card-inner {
+    width: 1080px;
+    height: 1350px;
+    transform: scale(0.5);
+    transform-origin: top left;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 92% 8%, rgba(77,163,255,0.24), transparent 280px),
+      linear-gradient(145deg, var(--bg) 0%, var(--bg-2) 78%);
+    color: var(--text);
+    letter-spacing: 0;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  .card-inner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,0.032) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+    background-size: 54px 54px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 74%);
+    pointer-events: none;
+  }
+
+  .card-inner::after {
+    content: "";
+    position: absolute;
+    left: 58px;
+    right: 58px;
+    bottom: 122px;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .brand {
+    position: absolute;
+    top: var(--y-strip);
+    left: var(--safe-x);
+    right: var(--safe-x);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: var(--muted);
+    font-size: 23px;
+    line-height: 1.2;
+    z-index: 2;
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #03111f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+    box-shadow: 0 0 42px rgba(77,163,255,0.26);
+    flex-shrink: 0;
+  }
+
+  .handle { color: var(--text); font-weight: 780; }
+  .sep { color: var(--muted-2); }
+  .series { color: var(--muted); }
+  .tag { margin-left: auto; color: var(--accent-2); font-weight: 780; font-size: 22px; }
+
+  .page {
+    position: absolute;
+    top: var(--y-page);
+    right: var(--safe-x);
+    color: var(--muted-2);
+    font-size: 26px;
+    font-weight: 720;
+    letter-spacing: 0.04em;
+    z-index: 2;
+  }
+
+  .label {
+    position: absolute;
+    top: var(--y-label);
+    left: var(--safe-x);
+    right: var(--safe-x);
+    color: var(--accent-2);
+    font-size: 24px;
+    font-weight: 820;
+    line-height: 1.2;
+    z-index: 2;
+  }
+
+  .title {
+    position: absolute;
+    top: var(--y-title);
+    left: var(--safe-x);
+    right: var(--safe-x);
+    font-size: 72px;
+    font-weight: 920;
+    line-height: 1.13;
+    z-index: 2;
+  }
+
+  .title .accent,
+  .cover-title .accent,
+  .summary-title .accent {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    position: absolute;
+    top: 450px;
+    left: var(--safe-x);
+    right: var(--safe-x);
+    color: var(--text);
+    font-size: 34px;
+    font-weight: 760;
+    line-height: 1.34;
+    z-index: 2;
+  }
+
+  .content {
+    position: absolute;
+    top: var(--y-content);
+    left: var(--safe-x);
+    right: var(--safe-x);
+    z-index: 2;
+  }
+
+  .body {
+    color: var(--muted);
+    font-size: 30px;
+    font-weight: 520;
+    line-height: 1.55;
+  }
+
+  .body p + p { margin-top: 24px; }
+
+  code {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.86em;
+    color: #d7efff;
+    background: rgba(77,163,255,0.16);
+    border: 1px solid rgba(77,163,255,0.26);
+    border-radius: 8px;
+    padding: 2px 10px;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    background: rgba(77,163,255,0.12);
+    border: 1px solid rgba(125,226,255,0.22);
+    color: var(--text);
+    font-size: 24px;
+    font-weight: 740;
+  }
+
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 32px;
+  }
+
+  .mini {
+    min-height: 138px;
+    padding: 24px;
+    border-radius: 8px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+
+  .mini b {
+    display: block;
+    color: var(--accent-2);
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .mini span {
+    color: var(--text);
+    font-size: 26px;
+    font-weight: 720;
+    line-height: 1.32;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 18px;
+    align-items: start;
+    padding: 22px 24px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .step .num {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-2);
+    color: var(--accent-2);
+    font-size: 27px;
+    font-weight: 900;
+  }
+
+  .step b {
+    display: block;
+    color: var(--text);
+    font-size: 28px;
+    line-height: 1.32;
+    margin-bottom: 6px;
+  }
+
+  .step span {
+    display: block;
+    color: var(--muted);
+    font-size: 24px;
+    line-height: 1.42;
+  }
+
+  .callout {
+    position: absolute;
+    top: var(--y-callout);
+    left: var(--safe-x);
+    right: var(--safe-x);
+    min-height: 128px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 26px 34px;
+    border-radius: 8px;
+    background: rgba(77,163,255,0.105);
+    border: 1px solid rgba(125,226,255,0.28);
+    color: var(--text);
+    font-size: 27px;
+    font-weight: 760;
+    line-height: 1.38;
+    text-align: center;
+    z-index: 2;
+  }
+
+  .callout::before {
+    content: "POINT";
+    position: absolute;
+    top: -18px;
+    left: 26px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #08213b;
+    border: 1px solid rgba(125,226,255,0.24);
+    color: var(--accent-2);
+    font-size: 17px;
+    font-weight: 880;
+    letter-spacing: 0.08em;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 58px;
+    left: var(--safe-x);
+    right: var(--safe-x);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--muted-2);
+    font-size: 22px;
+    font-weight: 650;
+    z-index: 2;
+  }
+
+  .footer .left { color: var(--accent-2); }
+
+  .cover .brand { top: 58px; }
+
+  .cover-kicker {
+    position: absolute;
+    top: 220px;
+    left: var(--safe-x);
+    color: var(--accent-2);
+    font-size: 25px;
+    font-weight: 820;
+    letter-spacing: 0.04em;
+  }
+
+  .cover-title {
+    position: absolute;
+    top: 298px;
+    left: var(--safe-x);
+    right: var(--safe-x);
+    font-size: 88px;
+    font-weight: 940;
+    line-height: 1.08;
+  }
+
+  .cover-sub {
+    position: absolute;
+    top: 612px;
+    left: var(--safe-x);
+    right: var(--safe-x);
+    color: var(--muted);
+    font-size: 32px;
+    line-height: 1.52;
+    font-weight: 560;
+  }
+
+  .keyword-box {
+    position: absolute;
+    top: 870px;
+    left: var(--safe-x);
+    right: var(--safe-x);
+    padding: 30px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line);
+  }
+
+  .keyword-title {
+    color: var(--accent-2);
+    font-size: 22px;
+    font-weight: 860;
+    margin-bottom: 20px;
+  }
+
+  .cover .chips .chip { font-size: 23px; }
+
+  .summary-title {
+    position: absolute;
+    top: 250px;
+    left: var(--safe-x);
+    right: var(--safe-x);
+    font-size: 82px;
+    font-weight: 940;
+    line-height: 1.09;
+    text-align: center;
+  }
+
+  .summary-copy {
+    position: absolute;
+    top: 514px;
+    left: 92px;
+    right: 92px;
+    color: var(--muted);
+    font-size: 31px;
+    line-height: 1.52;
+    text-align: center;
+  }
+
+  .summary-list {
+    position: absolute;
+    top: 722px;
+    left: 116px;
+    right: 116px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .summary-item {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 18px;
+    align-items: center;
+    padding: 18px 22px;
+    border-radius: 8px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 740;
+    line-height: 1.24;
+  }
+
+  .summary-item .check {
+    color: var(--accent-2);
+    font-weight: 900;
+  }
+
+  .card-label {
+    color: rgba(255,255,255,0.54);
+    font-size: 13px;
+    line-height: 1.4;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  @media (max-width: 1140px) {
+    body { padding: 24px; }
+    .grid { grid-template-columns: 540px; }
+    h1, .meta { width: 540px; }
+  }
+</style>
+</head>
+<body>
+<h1>속임수처럼 느껴지는 Claude Code 활용법 15가지</h1>
+<p class="meta">1080×1350 카드 16장 · 테크 뉴스레터 톤 · 블랙/딥네이비/화이트/포인트 블루</p>
+<div class="grid" id="grid"></div>
+
+<script>
+const cards = [
+  {
+    kind: "cover",
+    label: "CARD NEWS",
+    title: "속임수처럼 느껴지는<br><span class='accent'>Claude Code</span><br>활용법 15가지",
+    subtitle: "개발자가 직접 사용하는<br>고급 워크플로우 핵심 정리",
+    keywords: ["브라우저 검증", "브랜칭", "병렬 작업", "자동 수정", "토큰 절약"]
+  },
+  {
+    label: "01 · 브라우저 검증",
+    title: "Claude가 <span class='accent'>직접</span><br>보고 고치게 하라",
+    subtitle: "Chrome으로 프론트엔드 검증하기",
+    body: [
+      "<code>d-chrome</code> 명령어를 쓰면 Claude가 브라우저에 접근해 결과물을 직접 확인할 수 있습니다.",
+      "코드를 작성하고, 화면을 보고, 원하는 동작이 나올 때까지 반복 수정하는 방식입니다."
+    ],
+    point: "프론트엔드 작업은 작성보다 검증 루프가 중요합니다."
+  },
+  {
+    label: "02 · 컨텍스트 브랜칭",
+    title: "대화도 <span class='accent'>브랜치</span>처럼<br>관리하라",
+    subtitle: "Branching으로 컨텍스트 오염 방지",
+    body: [
+      "<code>/branch</code> 명령어를 쓰면 현재 대화 흐름을 유지한 채 새로운 방향으로 실험할 수 있습니다.",
+      "실험이 끝나면 <code>/resume [ID]</code>로 원래 지점으로 돌아옵니다."
+    ],
+    point: "아이디어 실험과 실제 작업 흐름을 분리할 수 있습니다."
+  },
+  {
+    label: "03 · 세션 이동",
+    title: "모바일과 데스크톱을<br><span class='accent'>이어</span> 쓰기",
+    subtitle: "Remote Control & Teleport",
+    body: [
+      "데스크톱에서 하던 Claude Code 세션을 모바일 앱에서 이어받을 수 있습니다.",
+      "반대로 모바일이나 웹에서 하던 작업을 다시 데스크톱으로 가져올 수도 있습니다."
+    ],
+    point: "작업 환경이 바뀌어도 세션의 연속성을 유지합니다."
+  },
+  {
+    label: "04 · 병렬 개발",
+    title: "여러 작업은<br><span class='accent'>병렬</span>로 돌려라",
+    subtitle: "Git Worktrees 적극 활용",
+    body: [
+      "여러 기능을 동시에 개발할 때 브랜치를 계속 바꾸는 대신 Git Worktrees를 사용합니다.",
+      "각 디렉토리마다 다른 Claude Code 인스턴스를 띄워 병렬로 작업을 진행합니다."
+    ],
+    point: "한 번에 하나씩이 아니라, 여러 실험을 동시에 돌립니다."
+  },
+  {
+    label: "05 · 계획 모델",
+    title: "계획부터<br>좋은 <span class='accent'>모델</span>을 써라",
+    subtitle: "Opus 모델을 적극 활용하기",
+    body: [
+      "단순 구현뿐 아니라 계획 단계에서도 좋은 모델을 쓰는 것이 중요합니다.",
+      "초반 계획이 정확하면 수정 횟수와 시행착오가 줄어듭니다."
+    ],
+    point: "비싼 모델을 쓰는 것이 아니라, 실패 비용을 줄이는 방식입니다."
+  },
+  {
+    label: "06 · PR 자동 수정",
+    title: "PR 수정도<br><span class='accent'>자동 루프</span>로",
+    subtitle: "Pull Request 자동 수정",
+    body: [
+      "PR을 올린 뒤 발생하는 린트 에러, 테스트 실패, 리뷰 코멘트를 Claude가 주기적으로 확인하게 합니다.",
+      "문제가 있으면 자동으로 수정하고 다시 커밋하는 루프를 만들 수 있습니다."
+    ],
+    point: "반복적인 수정 작업은 자동화 대상입니다."
+  },
+  {
+    label: "07 · 명령어 조합",
+    title: "명령어를<br><span class='accent'>연결</span>하라",
+    subtitle: "Slash Command Chaining",
+    body: [
+      "여러 라이브러리, 스킬, 작업 단계를 커스텀 슬래시 명령어로 연결합니다.",
+      "복잡한 작업도 하나의 명령어처럼 실행할 수 있습니다."
+    ],
+    point: "자주 반복하는 워크플로우는 명령어로 만들어야 합니다."
+  },
+  {
+    label: "08 · 검토 구조",
+    title: "Claude에게<br><span class='accent'>검토자</span> 역할을 맡겨라",
+    subtitle: "Sub Agent로 결과 검증",
+    body: [
+      "코드 단순화 전용 에이전트, 앱 검증 전용 에이전트처럼 역할을 나눕니다.",
+      "작업한 Claude와 검토하는 Claude를 분리하면 더 객관적인 결과를 얻을 수 있습니다."
+    ],
+    point: "AI에게도 작성자와 리뷰어를 분리합니다."
+  },
+  {
+    label: "09 · 큰 작업 분해",
+    title: "큰 작업은<br><span class='accent'>Batch</span>로 쪼개라",
+    subtitle: "Batch 명령어 활용",
+    body: [
+      "디자인 시스템 마이그레이션처럼 범위가 큰 작업은 여러 작업 단위로 나눠 병렬 실행합니다.",
+      "수십 개의 변경 작업을 한 번에 처리할 수 있습니다."
+    ],
+    point: "대규모 작업은 한 번에 시키지 말고 작게 나눠 동시에 진행합니다."
+  },
+  {
+    label: "10 · 계획 중심",
+    title: "코딩보다<br><span class='accent'>계획</span>이 먼저다",
+    subtitle: "Planning 중심 워크플로우",
+    body: [
+      "Claude Code를 잘 쓰는 핵심은 무작정 코드를 작성시키는 것이 아닙니다.",
+      "먼저 계획을 세우고, 그 계획을 다른 에이전트가 검토하게 만든 뒤 구현합니다."
+    ],
+    point: "좋은 결과는 좋은 프롬프트보다 좋은 계획에서 나옵니다."
+  },
+  {
+    label: "11 · 프로젝트 지침",
+    title: "프로젝트 지침은<br><span class='accent'>짧게</span> 관리하라",
+    subtitle: "Claude Markdown 관리",
+    body: [
+      "<code>.claude.md</code> 같은 프로젝트 지침 파일은 짧고 명확해야 합니다.",
+      "불필요한 지침은 삭제하고, 프로젝트 상황에 맞게 자주 업데이트합니다."
+    ],
+    point: "지침이 많을수록 좋은 게 아니라 정확한 지침만 남기는 것이 중요합니다."
+  },
+  {
+    label: "12 · 요구사항 압박",
+    title: "Claude가 나를<br><span class='accent'>집요하게</span> 묻게 하라",
+    subtitle: "“Grill Me” 프로세스",
+    body: [
+      "구현 전에 Claude가 계획, 요구사항, 예외 상황을 계속 질문하게 합니다.",
+      "모호함이 사라질 때까지 코딩을 시작하지 않는 방식입니다."
+    ],
+    point: "AI 코딩 실패의 대부분은 코드 문제가 아니라 요구사항 문제입니다."
+  },
+  {
+    label: "13 · 컨텍스트 관리",
+    title: "토큰도<br><span class='accent'>관리 대상</span>이다",
+    subtitle: "Token 분석과 Status Line",
+    body: [
+      "불필요하게 로드되는 전역 스킬이 토큰을 낭비하고 있지 않은지 확인합니다.",
+      "<code>/status line</code>을 활용하면 현재 컨텍스트 사용량과 남은 한도를 확인할 수 있습니다."
+    ],
+    point: "AI 작업에서는 코드 품질만큼 컨텍스트 관리도 중요합니다."
+  },
+  {
+    label: "14 · 학습 루프",
+    title: "AI로 코딩하면서<br><span class='accent'>실력</span>도 키워라",
+    subtitle: "학습을 병행하는 코딩",
+    body: [
+      "Claude에게 단순히 코드를 만들게 하지 말고, 왜 그런 구조와 결정을 선택했는지 설명하게 합니다.",
+      "결과물뿐 아니라 사용자의 엔지니어링 감각도 함께 성장합니다."
+    ],
+    point: "AI를 외주 개발자로 쓰지 말고 개인 튜터처럼 활용하세요."
+  },
+  {
+    kind: "summary",
+    label: "SUMMARY",
+    title: "Claude Code를<br>잘 쓰는 사람들의<br><span class='accent'>공통점</span>",
+    copy: "코드를 바로 시키지 않습니다.<br>먼저 계획하고, 검증하고, 자동화합니다.",
+    items: [
+      "브라우저로 직접 검증하게 하기",
+      "브랜칭으로 실험 분리하기",
+      "Worktrees로 병렬 개발하기",
+      "Sub Agent로 리뷰 구조 만들기",
+      "토큰과 컨텍스트 관리하기"
+    ]
+  }
+];
+
+const grid = document.getElementById("grid");
+const total = cards.length;
+
+function brand(page, tag = "#ClaudeCode") {
+  return `
+    <div class="brand">
+      <div class="avatar">U</div>
+      <span class="handle">kitt_AI_inc</span>
+      <span class="sep">|</span>
+      <span class="series">Claude Code workflows</span>
+      <span class="tag">${tag}</span>
+    </div>
+    <div class="page">${String(page).padStart(2, "0")} / ${String(total).padStart(2, "0")}</div>
+  `;
+}
+
+function footer(page) {
+  return `
+    <div class="footer">
+      <span class="left">kitt_AI_inc</span>
+      <span>${String(page).padStart(2, "0")}</span>
+    </div>
+  `;
+}
+
+function renderCover(card, page) {
+  return `
+    <div class="card-inner cover">
+      ${brand(page, "#워크플로우")}
+      <div class="cover-kicker">${card.label}</div>
+      <div class="cover-title">${card.title}</div>
+      <div class="cover-sub">${card.subtitle}</div>
+      <div class="keyword-box">
+        <div class="keyword-title">핵심 키워드</div>
+        <div class="chips">${card.keywords.map((keyword) => `<span class="chip">${keyword}</span>`).join("")}</div>
+      </div>
+      ${footer(page)}
+    </div>
+  `;
+}
+
+function renderStandard(card, page) {
+  const tagText = (card.label.split("·")[1] || "ClaudeCode").trim().replaceAll(" ", "");
+  const tag = `#${tagText}`;
+  const steps = card.steps ? `
+    <div class="steps">
+      ${card.steps.map((step, index) => `
+        <div class="step">
+          <div class="num">${String(index + 1).padStart(2, "0")}</div>
+          <div><b>${step.title}</b><span>${step.text}</span></div>
+        </div>
+      `).join("")}
+    </div>
+  ` : "";
+
+  return `
+    <div class="card-inner">
+      ${brand(page, tag)}
+      <div class="label">${card.label}</div>
+      <div class="title">${card.title}</div>
+      <div class="subtitle">${card.subtitle}</div>
+      <div class="content">
+        ${steps || `<div class="body">${card.body.map((paragraph) => `<p>${paragraph}</p>`).join("")}</div>`}
+      </div>
+      <div class="callout">${card.point}</div>
+      ${footer(page)}
+    </div>
+  `;
+}
+
+function renderSummary(card, page) {
+  return `
+    <div class="card-inner">
+      ${brand(page, "#요약")}
+      <div class="label" style="text-align:center">${card.label}</div>
+      <div class="summary-title">${card.title}</div>
+      <div class="summary-copy">${card.copy}</div>
+      <div class="summary-list">
+        ${card.items.map((item) => `<div class="summary-item"><span class="check">✓</span><span>${item}</span></div>`).join("")}
+      </div>
+      ${footer(page)}
+    </div>
+  `;
+}
+
+cards.forEach((card, index) => {
+  const page = index + 1;
+  const html = card.kind === "cover"
+    ? renderCover(card, page)
+    : card.kind === "summary"
+      ? renderSummary(card, page)
+      : renderStandard(card, page);
+
+  const wrap = document.createElement("div");
+  wrap.className = "card-wrap";
+  wrap.innerHTML = `
+    <div class="card">${html}</div>
+    <div class="card-label">${String(page).padStart(2, "0")} · ${card.kind || "card"} · ${card.label}</div>
+  `;
+  grid.appendChild(wrap);
+});
+</script>
+</body>
+</html>
