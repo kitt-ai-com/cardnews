@@ -7,7 +7,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
 const CARD_DIR = path.resolve(
-  import.meta.dir,
+  import.meta.dirname,
   "../data/series/claude/cards/2026-05-12-claude-code-15tips-telegram"
 );
 const PREVIEW_PATH = path.join(CARD_DIR, "preview.html");
