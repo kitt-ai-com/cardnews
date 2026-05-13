@@ -57,6 +57,63 @@ data/series/claude/cards/<YYYY-MM-DD-슬러그>/
 
 ---
 
+## 원고 파일(`doc`)로 카드뉴스 만들기
+
+주제 한 줄이 아니라 이미 써둔 원고가 있다면, repo 루트의 `doc` 파일에 붙여넣고 저장한 뒤 Claude Code에서 이렇게 요청합니다:
+
+```
+/goal 카드 뉴스 만들자 내용은 doc 참고해서 만들어 주고 검증까지 해줘
+```
+
+Claude는 `doc`을 원본으로 삼아 다음 흐름으로 작업합니다:
+
+1. `doc` 원고를 읽고 카드별 메시지와 흐름을 정리
+2. `data/series/claude/design-guide.md`와 레퍼런스 문서를 기준으로 시리즈 톤에 맞게 카피 정제
+3. 근거가 약한 수치·평가어는 완화하거나 검증 메모에 분리
+4. `preview.html` 생성
+5. 렌더 스크립트로 PNG export
+6. `typecheck`, `lint`, `test`, 렌더 결과까지 검증
+
+예시 원고 구조:
+
+```md
+CODEX 바이브코딩 6단계 카드뉴스
+
+[표지 카드]
+AI한테 일 시키는 법
+6단계로 끝낸다
+
+[Card 1] 시작하기 전에
+바이브코딩이 뭔가요?
+
+[Card 2] STEP 01 — PLAN.md
+"무엇을" 만들지 정하기
+
+...
+```
+
+실제 예시 산출물:
+
+```
+data/series/claude/cards/2026-05-13-codex-vibe-coding-6-steps/
+├─ analysis.md
+├─ preview.html
+├─ exports/page-01.png
+├─ ...
+└─ exports/page-11.png
+```
+
+이 사례는 `doc`의 **CODEX 바이브코딩 6단계** 원고를 바탕으로 만들었습니다. 핵심 흐름은:
+
+- `PLAN.md` — 무엇을 만들지 정하기
+- `DESIGN.md` — 어떻게 보일지 정하기
+- `AGENTS.md` — AI가 지킬 규칙 정하기
+- 백엔드 — 데이터 저장소 만들기
+- API — 화면과 데이터 연결하기
+- 배포 — URL로 공개하기
+
+---
+
 ## 수동 셋업 (셸로 직접 깔고 싶을 때)
 
 Claude Code 없이 터미널만으로 갈 때:
