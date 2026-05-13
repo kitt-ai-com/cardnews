@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>CODEX 바이브코딩 6단계</title>
+<style>
+  :root {
+    --bg: #0e0e10;
+    --panel: rgba(255,255,255,0.045);
+    --panel-2: rgba(255,255,255,0.075);
+    --text: #ffffff;
+    --muted: rgba(255,255,255,0.58);
+    --muted-2: rgba(255,255,255,0.34);
+    --border: rgba(255,255,255,0.10);
+    --accent: #c4ff3d;
+    --green: #58e07a;
+    --red: #ff6b6b;
+    --blue: #6fb8ff;
+    --y-strip: 60px;
+    --y-pageno: 130px;
+    --y-label: 220px;
+    --y-title: 280px;
+    --y-content: 535px;
+    --y-callout: 1100px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #1b1b1f;
+    color: #ddd;
+    font-family: Pretendard, "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  body {
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+  h1 { color: #fff; font-size: 28px; font-weight: 800; }
+  .meta { color: #999; font-size: 14px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 540px);
+    gap: 32px;
+  }
+  .card-label { color: #888; font-size: 13px; margin: 0 0 8px 4px; }
+
+  .card {
+    width: 540px;
+    height: 675px;
+    background: var(--bg);
+    color: var(--text);
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 10px 32px rgba(0,0,0,0.38);
+  }
+  .card-inner {
+    width: 1080px;
+    height: 1350px;
+    position: absolute;
+    inset: 0;
+    transform: scale(0.5);
+    transform-origin: top left;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(255,255,255,0.030) 1px, transparent 1px),
+      var(--bg);
+    background-size: 120px 120px;
+    letter-spacing: -0.02em;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  .card-inner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(14,14,16,0) 0%, rgba(14,14,16,0.18) 100%);
+  }
+
+  .strip {
+    position: absolute;
+    top: var(--y-strip);
+    left: 48px;
+    right: 48px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: var(--muted);
+    font-size: 24px;
+    line-height: 1.2;
+    z-index: 3;
+  }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+  .handle { color: var(--text); font-weight: 750; }
+  .sep { color: var(--muted-2); }
+  .series { color: var(--muted); }
+  .hashtag { margin-left: auto; color: var(--accent); font-size: 22px; font-weight: 700; }
+
+  .pageno {
+    position: absolute;
+    top: var(--y-pageno);
+    right: 48px;
+    color: var(--muted-2);
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    z-index: 3;
+  }
+  .label {
+    position: absolute;
+    top: var(--y-label);
+    left: 48px;
+    color: var(--accent);
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    z-index: 3;
+  }
+  .title {
+    position: absolute;
+    top: var(--y-title);
+    left: 48px;
+    right: 48px;
+    font-size: 78px;
+    line-height: 1.12;
+    font-weight: 920;
+    letter-spacing: -0.025em;
+    z-index: 3;
+  }
+  .title.big { font-size: 94px; line-height: 1.05; }
+  .title.center { text-align: center; }
+  .accent { color: var(--accent); }
+  .blue { color: var(--blue); }
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+
+  .content {
+    position: absolute;
+    top: var(--y-content);
+    left: 48px;
+    right: 48px;
+    z-index: 3;
+  }
+  .callout-slot {
+    position: absolute;
+    top: var(--y-callout);
+    left: 48px;
+    right: 48px;
+    z-index: 3;
+  }
+  .callout {
+    min-height: 102px;
+    border: 1px solid rgba(196,255,61,0.26);
+    background: rgba(196,255,61,0.07);
+    border-radius: 16px;
+    padding: 24px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text);
+    font-size: 28px;
+    line-height: 1.42;
+    font-weight: 700;
+  }
+  .callout.bluebox {
+    border-color: rgba(111,184,255,0.28);
+    background: rgba(111,184,255,0.07);
+  }
+  .footer {
+    position: absolute;
+    bottom: 60px;
+    left: 48px;
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 700;
+    opacity: 0.82;
+    z-index: 3;
+  }
+
+  .doc-board {
+    position: absolute;
+    top: 170px;
+    left: 62px;
+    right: 62px;
+    height: 500px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    z-index: 1;
+  }
+  .doc-chip {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(196,255,61,0.22);
+    border-radius: 22px;
+    padding: 30px 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 270px;
+  }
+  .doc-chip .file { color: var(--accent); font-size: 30px; font-weight: 900; }
+  .doc-chip .desc { color: var(--text); font-size: 25px; line-height: 1.35; font-weight: 700; }
+  .doc-chip .line {
+    display: block;
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.13);
+    margin-top: 12px;
+  }
+  .cover-mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 575px;
+    height: 300px;
+    z-index: 2;
+    background: linear-gradient(to bottom, rgba(14,14,16,0.05), rgba(14,14,16,1) 78%);
+  }
+  .cover .label { top: 745px; }
+  .cover .title { top: 805px; }
+  .cover-sub {
+    position: absolute;
+    top: 1038px;
+    left: 48px;
+    right: 48px;
+    color: var(--muted);
+    font-size: 31px;
+    line-height: 1.48;
+    font-weight: 550;
+    z-index: 3;
+  }
+
+  .body-copy {
+    color: var(--text);
+    font-size: 34px;
+    line-height: 1.55;
+    font-weight: 520;
+  }
+  .body-copy p + p { margin-top: 24px; }
+  .body-copy .muted { color: var(--muted); }
+
+  .two-notes {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 30px;
+  }
+  .note .kicker {
+    color: var(--accent);
+    font-size: 23px;
+    font-weight: 850;
+    margin-bottom: 12px;
+  }
+  .note .txt {
+    color: var(--text);
+    font-size: 31px;
+    line-height: 1.42;
+    font-weight: 650;
+  }
+  .note .sub {
+    color: var(--muted);
+    font-size: 25px;
+    line-height: 1.45;
+    margin-top: 12px;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 26px;
+  }
+  .file-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 210px;
+    height: 72px;
+    padding: 0 28px;
+    border-radius: 14px;
+    background: rgba(196,255,61,0.12);
+    border: 1px solid rgba(196,255,61,0.28);
+    color: var(--accent);
+    font-size: 31px;
+    font-weight: 900;
+  }
+  .one-line {
+    color: var(--muted);
+    font-size: 27px;
+    line-height: 1.34;
+    font-weight: 650;
+    text-align: right;
+    max-width: 590px;
+  }
+  .check-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .check {
+    min-height: 132px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .mark {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(196,255,61,0.12);
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 900;
+  }
+  .check .txt {
+    color: var(--text);
+    font-size: 27px;
+    line-height: 1.34;
+    font-weight: 720;
+  }
+  .check .mini {
+    display: block;
+    color: var(--muted);
+    font-size: 22px;
+    line-height: 1.35;
+    margin-top: 8px;
+    font-weight: 520;
+  }
+  .example {
+    margin-top: 22px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 22px 26px;
+    color: var(--text);
+    font-size: 27px;
+    line-height: 1.42;
+    font-weight: 640;
+  }
+  .example code {
+    color: var(--accent);
+    background: rgba(196,255,61,0.12);
+    border-radius: 7px;
+    padding: 2px 10px;
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 23px;
+    overflow-wrap: anywhere;
+  }
+
+  .flow-three {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .flow-card {
+    min-height: 250px;
+    background: var(--panel);
+    border: 1px solid rgba(196,255,61,0.22);
+    border-radius: 18px;
+    padding: 26px 24px;
+  }
+  .flow-card .num {
+    color: var(--muted-2);
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+  }
+  .flow-card .name {
+    color: var(--accent);
+    font-size: 34px;
+    font-weight: 900;
+    margin-top: 16px;
+  }
+  .flow-card .desc {
+    color: var(--text);
+    font-size: 26px;
+    line-height: 1.38;
+    font-weight: 650;
+    margin-top: 16px;
+  }
+
+  .pipe {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .pipe-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 170px;
+    gap: 16px;
+    align-items: center;
+    padding: 18px 22px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+  .pipe-row .step {
+    color: var(--accent);
+    font-size: 25px;
+    font-weight: 900;
+  }
+  .pipe-row .what {
+    color: var(--text);
+    font-size: 29px;
+    line-height: 1.3;
+    font-weight: 720;
+  }
+  .pipe-row .who {
+    color: var(--muted);
+    font-size: 23px;
+    line-height: 1.3;
+    font-weight: 650;
+    text-align: right;
+  }
+  .divider-row {
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-2);
+    font-size: 28px;
+    font-weight: 800;
+  }
+
+  .deploy-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .deploy-item {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 20px;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 24px;
+  }
+  .deploy-item .idx {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(111,184,255,0.12);
+    border: 1px solid rgba(111,184,255,0.28);
+    color: var(--blue);
+    font-size: 28px;
+    font-weight: 900;
+  }
+  .deploy-item .txt {
+    color: var(--text);
+    font-size: 30px;
+    line-height: 1.34;
+    font-weight: 720;
+  }
+  .deploy-item .txt small {
+    display: block;
+    color: var(--muted);
+    font-size: 23px;
+    margin-top: 6px;
+    font-weight: 520;
+  }
+
+  .final-line {
+    position: absolute;
+    top: 500px;
+    left: 78px;
+    right: 78px;
+    color: var(--text);
+    text-align: center;
+    font-size: 58px;
+    line-height: 1.24;
+    font-weight: 920;
+    z-index: 3;
+  }
+  .final-sub {
+    position: absolute;
+    top: 760px;
+    left: 120px;
+    right: 120px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 32px;
+    line-height: 1.52;
+    font-weight: 560;
+    z-index: 3;
+  }
+  .cta-pill {
+    position: absolute;
+    top: 990px;
+    left: 260px;
+    right: 260px;
+    height: 88px;
+    border-radius: 999px;
+    border: 1px solid rgba(196,255,61,0.35);
+    background: rgba(196,255,61,0.12);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 900;
+    z-index: 3;
+  }
+</style>
+</head>
+<body>
+  <h1>CODEX 바이브코딩 6단계</h1>
+  <div class="meta">1080×1350 카드뉴스 preview · 11 pages · source: doc</div>
+  <div class="grid">
+
+    <div>
+      <div class="card-label">01 / Cover</div>
+      <div class="card">
+        <div class="card-inner cover">
+          <div class="doc-board">
+            <div class="doc-chip"><div class="file">PLAN.md</div><div class="desc">무엇을 만들지<br>먼저 정한다</div><span class="line"></span><span class="line"></span></div>
+            <div class="doc-chip"><div class="file">DESIGN.md</div><div class="desc">어떻게 보일지<br>미리 정한다</div><span class="line"></span><span class="line"></span></div>
+            <div class="doc-chip"><div class="file">AGENTS.md</div><div class="desc">AI가 지킬<br>규칙을 적는다</div><span class="line"></span><span class="line"></span></div>
+          </div>
+          <div class="cover-mask"></div>
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#입문가이드</span></div>
+          <div class="label">CODEX VIBE CODING</div>
+          <div class="title big">AI한테<br><span class="accent">일</span> 시키는 법</div>
+          <div class="cover-sub">초보자를 위한 6단계 입문 가이드<br>코드보다 먼저, AI가 읽을 문서를 만든다.</div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">02 / Intro</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#기초부터</span></div>
+          <div class="pageno">02 / 11</div>
+          <div class="label">START HERE</div>
+          <div class="title">바이브코딩은<br><span class="accent">말</span>로 맡기는 방식</div>
+          <div class="content two-notes">
+            <div class="note">
+              <div class="kicker">정의</div>
+              <div class="txt">코드를 직접 짜기보다, AI에게 원하는 결과와 기준을 설명해서 만든다.</div>
+            </div>
+            <div class="note">
+              <div class="kicker">문제</div>
+              <div class="txt">AI는 똑똑해도 목적지를 모르면 헤맨다.</div>
+              <div class="sub">그래서 먼저 길 안내서를 써야 한다.</div>
+            </div>
+          </div>
+          <div class="callout-slot"><div class="callout">앞 3단계 문서가 좋을수록<br><span class="accent">뒤 구현</span>이 덜 흔들린다.</div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">03 / Step 01</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#PLAN</span></div>
+          <div class="pageno">03 / 11</div>
+          <div class="label">STEP 01</div>
+          <div class="title"><span class="accent">무엇을</span><br>만들지 정하기</div>
+          <div class="content">
+            <div class="step-header"><div class="file-pill">PLAN.md</div><div class="one-line">AI에게 왜 만드는지 알려주는 문서</div></div>
+            <div class="check-grid">
+              <div class="check"><div class="mark">✓</div><div class="txt">만들 것<span class="mini">한 문장으로 적기</span></div></div>
+              <div class="check"><div class="mark">✓</div><div class="txt">쓸 사람<span class="mini">누가, 언제 쓰나</span></div></div>
+              <div class="check"><div class="mark">✓</div><div class="txt">핵심 화면<span class="mini">3~5개면 충분</span></div></div>
+              <div class="check"><div class="mark">✓</div><div class="txt">완료 기준<span class="mini">여기까지 되면 끝</span></div></div>
+            </div>
+            <div class="example">예: 30명 회사 직원이 휴가 신청하는 시스템<br>화면: 신청 폼 / 승인 리스트 / 잔여일수</div>
+          </div>
+          <div class="callout-slot"><div class="callout">목적지 없이 출발하면<br>AI도 <span class="accent">계속 되묻는다.</span></div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">04 / Step 02</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#DESIGN</span></div>
+          <div class="pageno">04 / 11</div>
+          <div class="label">STEP 02</div>
+          <div class="title"><span class="accent">어떻게</span><br>보일지 정하기</div>
+          <div class="content">
+            <div class="step-header"><div class="file-pill">DESIGN.md</div><div class="one-line">AI에게 화면의 모양을 알려주는 문서</div></div>
+            <div class="check-grid">
+              <div class="check"><div class="mark">✓</div><div class="txt">색깔<span class="mini">4~5개면 충분</span></div></div>
+              <div class="check"><div class="mark">✓</div><div class="txt">폰트<span class="mini">한 종류부터 시작</span></div></div>
+              <div class="check"><div class="mark">✓</div><div class="txt">버튼과 카드<span class="mini">모서리, 테두리, 여백</span></div></div>
+              <div class="check"><div class="mark">✓</div><div class="txt">빈 상태<span class="mini">로딩, 에러 화면</span></div></div>
+            </div>
+            <div class="example">예: 검정 / 회색 / 흰색, Pretendard,<br>검정 버튼, 8px 모서리, 조용한 화면</div>
+          </div>
+          <div class="callout-slot"><div class="callout">디자인 기준이 없으면<br>AI는 매번 <span class="accent">다른 앱</span>을 만든다.</div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">05 / Step 03</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#AGENTS</span></div>
+          <div class="pageno">05 / 11</div>
+          <div class="label">STEP 03</div>
+          <div class="title">AI가 지킬<br><span class="accent">규칙</span> 정하기</div>
+          <div class="content">
+            <div class="step-header"><div class="file-pill">AGENTS.md</div><div class="one-line">Codex가 작업 전 읽는 프로젝트 지침</div></div>
+            <div class="check-grid">
+              <div class="check"><div class="mark">✓</div><div class="txt">프로젝트 소개<span class="mini">한 줄로 정리</span></div></div>
+              <div class="check"><div class="mark">✓</div><div class="txt">지킬 것<span class="mini">디자인, 말투, 테스트</span></div></div>
+              <div class="check"><div class="mark">!</div><div class="txt">하지 말 것<span class="mini">멋대로 추가 금지</span></div></div>
+              <div class="check"><div class="mark">↗</div><div class="txt">참고 문서<span class="mini">PLAN/DESIGN 링크</span></div></div>
+            </div>
+            <div class="example"><code>하지 말 것</code> 목록이 핵심이다.<br>선이 없으면 AI는 자기 방식으로 해결한다.</div>
+          </div>
+          <div class="callout-slot"><div class="callout">AGENTS.md는 프로젝트의<br><span class="accent">작업 헌법</span>이다.</div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">06 / Pause</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#설명서</span></div>
+          <div class="pageno">06 / 11</div>
+          <div class="label">CHECKPOINT</div>
+          <div class="title">앞 3단계가<br><span class="accent">설명서</span>다</div>
+          <div class="content flow-three">
+            <div class="flow-card"><div class="num">01</div><div class="name">PLAN</div><div class="desc">무엇을 만들지 정한다.</div></div>
+            <div class="flow-card"><div class="num">02</div><div class="name">DESIGN</div><div class="desc">어떻게 보일지 정한다.</div></div>
+            <div class="flow-card"><div class="num">03</div><div class="name">AGENTS</div><div class="desc">어떤 규칙으로 일할지 정한다.</div></div>
+          </div>
+          <div class="callout-slot"><div class="callout">앞에서 시간을 쓰면<br>뒤에서 <span class="accent">무한 수정</span>을 줄인다.</div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">07 / Step 04</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#백엔드</span></div>
+          <div class="pageno">07 / 11</div>
+          <div class="label">STEP 04</div>
+          <div class="title">데이터 저장소<br><span class="accent">만들기</span></div>
+          <div class="content">
+            <div class="step-header"><div class="file-pill">BACKEND</div><div class="one-line">정보를 저장할 창고를 준비하는 단계</div></div>
+            <div class="check-grid">
+              <div class="check"><div class="mark">DB</div><div class="txt">데이터베이스<span class="mini">신청, 승인, 잔여일수 저장</span></div></div>
+              <div class="check"><div class="mark">ID</div><div class="txt">인증<span class="mini">누가 로그인할 수 있나</span></div></div>
+              <div class="check"><div class="mark">ENV</div><div class="txt">환경 변수<span class="mini">키와 비밀번호 보관</span></div></div>
+              <div class="check"><div class="mark">AI</div><div class="txt">요청 문장<span class="mini">PLAN.md 기준으로 DB 만들어줘</span></div></div>
+            </div>
+            <div class="example">Supabase 같은 도구를 쓰면 DB와 인증을 빠르게 시작할 수 있다.</div>
+          </div>
+          <div class="callout-slot"><div class="callout">비밀번호는 절대<br><span class="accent">코드에 직접</span> 쓰지 않는다.</div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">08 / Step 05</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#API</span></div>
+          <div class="pageno">08 / 11</div>
+          <div class="label">STEP 05</div>
+          <div class="title">화면과 데이터<br><span class="accent">연결하기</span></div>
+          <div class="content">
+            <div class="step-header"><div class="file-pill">API</div><div class="one-line">버튼을 누르면 실제 데이터가 움직이게 한다</div></div>
+            <div class="check-grid">
+              <div class="check"><div class="mark">1</div><div class="txt">화면 하나씩<span class="mini">신청 폼부터 연결</span></div></div>
+              <div class="check"><div class="mark">2</div><div class="txt">저장 확인<span class="mini">DB에 값이 들어갔나</span></div></div>
+              <div class="check"><div class="mark">3</div><div class="txt">외부 서비스<span class="mini">이메일, 알림은 나중에</span></div></div>
+              <div class="check"><div class="mark">4</div><div class="txt">에러 처리<span class="mini">실패했어요 메시지</span></div></div>
+            </div>
+            <div class="example">AI에게: 신청 폼 제출하면 DB에 저장되게 연결해줘. 먼저 이 화면만 테스트해줘.</div>
+          </div>
+          <div class="callout-slot"><div class="callout">한 번에 다 연결하지 말고<br><span class="accent">한 화면씩</span> 검증한다.</div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">09 / Step 06</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#배포</span></div>
+          <div class="pageno">09 / 11</div>
+          <div class="label">STEP 06</div>
+          <div class="title">URL로<br><span class="accent">공개하기</span></div>
+          <div class="content deploy-list">
+            <div class="deploy-item"><div class="idx">1</div><div class="txt">GitHub에 코드 올리기<small>작업 기록과 배포 연결점</small></div></div>
+            <div class="deploy-item"><div class="idx">2</div><div class="txt">Vercel에 저장소 연결<small>push마다 미리보기 배포 확인</small></div></div>
+            <div class="deploy-item"><div class="idx">3</div><div class="txt">환경 변수 다시 확인<small>비밀번호 파일이 올라가지 않았나</small></div></div>
+            <div class="deploy-item"><div class="idx">4</div><div class="txt">완성 URL 공유<small>예: my-app.vercel.app</small></div></div>
+          </div>
+          <div class="callout-slot"><div class="callout bluebox">배포는 끝이 아니라<br><span class="blue">처음 사용자 테스트</span>다.</div></div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">10 / Summary</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#요약</span></div>
+          <div class="pageno">10 / 11</div>
+          <div class="label">ONE PAGE RECAP</div>
+          <div class="title">6단계<br><span class="accent">한 줄</span> 요약</div>
+          <div class="content pipe">
+            <div class="pipe-row"><div class="step">01</div><div class="what">PLAN.md</div><div class="who">무엇을</div></div>
+            <div class="pipe-row"><div class="step">02</div><div class="what">DESIGN.md</div><div class="who">어떻게</div></div>
+            <div class="pipe-row"><div class="step">03</div><div class="what">AGENTS.md</div><div class="who">규칙</div></div>
+            <div class="divider-row">문서 작성 → 구현 요청</div>
+            <div class="pipe-row"><div class="step">04</div><div class="what">백엔드</div><div class="who">저장소</div></div>
+            <div class="pipe-row"><div class="step">05</div><div class="what">API</div><div class="who">연결</div></div>
+            <div class="pipe-row"><div class="step">06</div><div class="what">배포</div><div class="who">공개</div></div>
+          </div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-label">11 / CTA</div>
+      <div class="card">
+        <div class="card-inner">
+          <div class="strip"><div class="avatar">C</div><span class="handle">@uhuru_nomadlife</span><span class="sep">|</span><span class="series">CODEX 바이브코딩</span><span class="hashtag">#시작</span></div>
+          <div class="pageno">11 / 11</div>
+          <div class="label" style="left: 0; right: 0; text-align: center;">REMEMBER THIS</div>
+          <div class="title center big" style="top: 285px;">AI는<br><span class="accent">길</span>을 원한다</div>
+          <div class="final-line">똑똑한 AI도<br>설명서가 없으면 헤맨다.</div>
+          <div class="final-sub">오늘부터 코드보다 먼저 문서를 쓰자.<br>그게 바이브코딩의 시작이다.</div>
+          <div class="cta-pill">PLAN.md부터 열기</div>
+          <div class="footer">@uhuru_nomadlife</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
