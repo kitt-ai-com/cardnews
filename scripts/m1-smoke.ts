@@ -11,7 +11,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Pipeline } from "../src/core/orchestrator/pipeline";
+import { Pipeline, type ExporterFn } from "../src/core/orchestrator/pipeline";
 import { FileStateStore } from "../src/providers-impl/file-state-store";
 import {
   makeMockAnalyst,
@@ -67,6 +67,14 @@ const sourcePolicy: SourcePolicy = {
   factCheckMode: "skip",
 };
 
+const smokeExporter: ExporterFn = async (config) => ({
+  runId: "m1-smoke",
+  exportedPages: config.card.pages.map((p) => p.index),
+  measurements: [],
+  l2Violations: [],
+  finalDir: config.outDir,
+});
+
 async function main(): Promise<void> {
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "cardnews-m1-smoke-"));
   console.log(`[m1-smoke] state dir: ${tmpRoot}`);
@@ -78,6 +86,7 @@ async function main(): Promise<void> {
     copywriter: makeMockCopywriter(),
     imageDirector: makeMockImageDirector(),
     factChecker: makeMockFactChecker(),
+    exporter: smokeExporter,
   });
 
   const card0 = await pipeline.start({
